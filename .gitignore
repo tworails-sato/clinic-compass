@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.production
+.env.development.local
+.env.test.local
+!.env.example
+
+# Local development logs
+dev-check.log
+*.log
+
+# TypeScript / editor artifacts
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
