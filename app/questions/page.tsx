@@ -11,6 +11,7 @@ export default function QuestionsPage() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [answers, setAnswers] = useState<Answers>({});
   const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const savedProfile = window.sessionStorage.getItem(storageKeys.profile);
@@ -18,6 +19,7 @@ export default function QuestionsPage() {
       router.replace("/start");
       return;
     }
+
     setProfile(JSON.parse(savedProfile));
     const savedAnswers = window.sessionStorage.getItem(storageKeys.answers);
     if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
@@ -34,15 +36,44 @@ export default function QuestionsPage() {
     window.sessionStorage.setItem(storageKeys.answers, JSON.stringify(next));
   }
 
-  function submit() {
+  async function submit() {
     const missing = questions.find((q) => !answers[q.id]);
     if (missing) {
       setError(`未回答の設問があります。No.${missing.id}から回答してください。`);
       setTimeout(() => document.getElementById(`q-${missing.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 10);
       return;
     }
+
+    setSaving(true);
+    setError("");
     window.sessionStorage.setItem(storageKeys.answers, JSON.stringify(answers));
-    router.push("/result");
+
+    try {
+      const response = await fetch("/api/assessments/complete", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ profile, answers }),
+      });
+      const data = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string; responseId?: string };
+
+      if (!response.ok || !data.ok) {
+        setError(data.message || "診断結果を保存できませんでした。時間をおいて再度お試しください。");
+        setSaving(false);
+        return;
+      }
+
+      if (data.responseId) {
+        window.sessionStorage.setItem(storageKeys.savedResponseId, data.responseId);
+      }
+
+      router.push("/result");
+    } catch (err) {
+      console.error("[clinic-compass] Assessment completion request failed", err);
+      setError("診断結果を保存できませんでした。通信環境を確認し、再度お試しください。");
+      setSaving(false);
+    }
   }
 
   if (!profile.type) return null;
@@ -59,6 +90,7 @@ export default function QuestionsPage() {
               {profile.clinic}　{profile.name}さん
             </p>
           </section>
+
           <div className="score-guide">
             <strong>回答の目安</strong>
             {scale.map((label, i) => (
@@ -68,6 +100,7 @@ export default function QuestionsPage() {
               </span>
             ))}
           </div>
+
           <div className="sticky-progress">
             <div>
               <strong>回答状況</strong>
@@ -78,11 +111,13 @@ export default function QuestionsPage() {
             <div className="progress">
               <i style={{ width: `${(answered / questions.length) * 100}%` }} />
             </div>
-            <button className="button compact" onClick={submit}>
-              結果を見る
+            <button className="button compact" onClick={submit} disabled={saving}>
+              {saving ? "保存中..." : "結果を見る"}
             </button>
           </div>
+
           {error && <div className="alert">{error}</div>}
+
           {themes.map((theme) => (
             <section className="card theme" key={theme}>
               <p className="theme-kicker">THEME</p>
@@ -100,7 +135,13 @@ export default function QuestionsPage() {
                       <div className="scale">
                         {scale.map((label, i) => (
                           <label key={label}>
-                            <input type="radio" name={`q-${q.id}`} checked={answers[q.id] === i + 1} onChange={() => setAnswer(q.id, i + 1)} />
+                            <input
+                              type="radio"
+                              name={`q-${q.id}`}
+                              checked={answers[q.id] === i + 1}
+                              disabled={saving}
+                              onChange={() => setAnswer(q.id, i + 1)}
+                            />
                             <b>{i + 1}</b>
                             <small>{label}</small>
                           </label>
@@ -111,10 +152,11 @@ export default function QuestionsPage() {
                 })}
             </section>
           ))}
+
           <div className="submit-box">
             {error && <p className="error">{error}</p>}
-            <button className="button large" onClick={submit}>
-              診断結果を見る →
+            <button className="button large" onClick={submit} disabled={saving}>
+              {saving ? "診断結果を保存中..." : "診断結果を見る →"}
             </button>
           </div>
         </div>

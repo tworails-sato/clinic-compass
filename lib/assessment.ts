@@ -87,4 +87,5 @@ export function getPriorities(grouped: GroupScore[]) {
 export const storageKeys = {
   profile: "clinic-compass-profile",
   answers: "clinic-compass-answers",
+  savedResponseId: "clinic-compass-response-id",
 };
