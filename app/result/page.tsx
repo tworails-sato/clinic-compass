@@ -8,6 +8,18 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 
+const feedbackUrl = "https://timerex.net/s/sato.motoki_765a/c6616a1a";
+
+function priorityComment(theme: string, index: number) {
+  const openings = [
+    "まず着目したいのは",
+    "次に確認したいのは",
+    "あわせて見ておきたいのは",
+  ];
+
+  return `${openings[index] ?? "確認したいのは"}「${theme}」です。点数の背景には、現場で起きている具体的な業務・判断・情報共有の状態が表れています。良し悪しを決める材料ではなく、どこから状況を確認し、誰と話し合うかを決める入口として捉えてください。`;
+}
+
 export default function ResultPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile>(emptyProfile);
@@ -88,16 +100,18 @@ export default function ResultPage() {
           </div>
           <section className="comment-card">
             <p className="eyebrow">COMPASS NOTE</p>
-            <h2>ここから始める、次の一歩。</h2>
-            <div className="comment-grid">
-              <p>
-                全体としては<strong>{total >= 4 ? "安定した基盤" : total >= 3 ? "改善の土台" : "見直しの余地"}</strong>が見えています。すべてを一度に変える必要はありません。
-              </p>
-              <p>
-                まずは <strong>{priorities[0]?.name}</strong> に関して、現場で起きている具体的な事実を三つ集めることから始めましょう。
-              </p>
-              <p>次回のミーティングでは「誰が」「いつまでに」「何を確認するか」を一つ決めると、診断が行動に変わります。</p>
+            <h2>優先確認テーマから見る、次の一歩。</h2>
+            <div className="priority-comment-list">
+              {priorities.map((row, i) => (
+                <p key={row.name}>
+                  <strong>{row.name}</strong>
+                  {priorityComment(row.name, i)}
+                </p>
+              ))}
             </div>
+            <p className="feedback-lead">
+              15分ほどで詳細の解説とアクションプランの整理を行います。より具体的に確認したい場合は、詳細フィードバックをご予約ください。
+            </p>
           </section>
           <section className="accordion-card">
             <p className="eyebrow teal">HOW TO READ</p>
@@ -124,9 +138,9 @@ export default function ResultPage() {
             >
               もう一度診断する
             </Link>
-            <Link className="button" href="/admin">
-              管理画面で確認する →
-            </Link>
+            <a className="button" href={feedbackUrl} target="_blank" rel="noopener noreferrer">
+              詳細フィードバックを依頼する →
+            </a>
           </div>
         </div>
       </main>
