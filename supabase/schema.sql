@@ -96,12 +96,16 @@ create table if not exists public.clinic_assessment_reports (
   id uuid primary key default gen_random_uuid(),
   response_id uuid not null unique references public.clinic_assessment_responses(id) on delete cascade,
   overall_comment text,
+  strengths_comment text,
   priority_comment text,
   next_actions text,
   internal_notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.clinic_assessment_reports
+  add column if not exists strengths_comment text;
 
 create index if not exists clinic_assessment_responses_submitted_at_idx
   on public.clinic_assessment_responses (submitted_at desc);

@@ -1,5 +1,168 @@
-"use client";
 import Link from "next/link";
-import { useState } from "react";
-const rows=[{name:"山田 太郎",clinic:"さくらクリニック",role:"院長",date:"2026/06/24",score:"3.4",priority:"人材・組織"},{name:"佐藤 花子",clinic:"ひかり内科",role:"事務長",date:"2026/06/23",score:"3.8",priority:"数値・改善・事務"},{name:"鈴木 一郎",clinic:"青葉歯科",role:"院長",date:"2026/06/20",score:"2.9",priority:"収益・業務設計"}];
-export default function AdminPage(){const [selected,setSelected]=useState(0);const [saved,setSaved]=useState(false);const row=rows[selected];return <main className="admin"><header className="admin-head"><Link className="wordmark" href="/">院長<span>コンパス</span></Link><span>管理画面（ローカルモック）</span></header><div className="admin-wrap"><aside><p>ASSESSMENTS</p><h2>回答一覧</h2><div className="admin-filter"><button>すべて</button><button>院長</button><button>事務長</button></div>{rows.map((item,i)=><button className={`response-row ${selected===i?"selected":""}`} key={item.name} onClick={()=>{setSelected(i);setSaved(false)}}><strong>{item.name}</strong><span>{item.clinic} ／ {item.role}</span><small>{item.date}</small></button>)}</aside><section className="admin-detail"><p className="eyebrow teal">RESPONSE DETAIL</p><h1>{row.name}さん</h1><p className="admin-meta">{row.clinic}　／　{row.role}　／　{row.date} 回答</p><div className="admin-stats"><div><span>総合スコア</span><b>{row.score}</b></div><div><span>優先確認テーマ</span><b className="theme-name">{row.priority}</b></div></div><section className="report-editor"><div><p className="eyebrow teal">REPORT MAKER</p><h2>レポートコメントを作成</h2><p>受検者の結果に合わせて、管理者用の所見・次のアクションを記録できます。</p></div><label>総評<textarea defaultValue="回答結果から、日常運営の基盤は一定程度整っています。優先テーマについて、現場の具体的な状況を確認することをおすすめします。"/></label><label>優先テーマへのコメント<textarea defaultValue={`${row.priority}について、関係者との認識合わせを行い、まず一つの改善行動と担当者を決めてください。`}/></label><label>次回までのアクション<textarea placeholder="例：7月15日までに、待ち時間の発生要因を集計する。担当：事務長"/></label><button className="button" onClick={()=>setSaved(true)}>レポートコメントを保存</button>{saved&&<span className="saved">保存しました（ローカル画面のみ）</span>}</section></section></div></main>}
+import { logoutAction } from "@/app/admin/auth-actions";
+import { saveReportAction } from "@/app/admin/actions";
+import { AdminDeleteForm } from "@/components/AdminDeleteForm";
+import { Radar } from "@/components/Radar";
+import { formatDate, getAnswers, getReport, listResponses, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
+import { requireAdminUser } from "@/lib/admin/session";
+import { hasSupabaseEnv } from "@/lib/supabase/rest";
+
+export const dynamic = "force-dynamic";
+
+export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ id?: string; saved?: string; deleted?: string }> }) {
+  if (!hasSupabaseEnv()) {
+    return (
+      <main className="admin">
+        <header className="admin-head">
+          <Link className="wordmark" href="/">
+            院長<span>コンパス</span>
+          </Link>
+          <span>管理画面</span>
+        </header>
+        <section className="admin-empty">
+          <h1>Supabase環境変数が未設定です</h1>
+          <p>.env.local に Supabase URL / anon key / service role key を設定すると、実データを表示できます。</p>
+        </section>
+      </main>
+    );
+  }
+
+  await requireAdminUser();
+  const params = await searchParams;
+
+  const responses = await listResponses();
+  const selected = responses.find((row) => row.id === params?.id) ?? responses[0];
+  const answers = selected ? await getAnswers(selected.id) : [];
+  const report = selected ? await getReport(selected.id) : null;
+  const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
+  const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
+
+  return (
+    <main className="admin">
+      <header className="admin-head">
+        <Link className="wordmark" href="/">
+          院長<span>コンパス</span>
+        </Link>
+        <div className="admin-head-actions">
+          <span>管理画面</span>
+          <form action={logoutAction}>
+            <button type="submit">ログアウト</button>
+          </form>
+        </div>
+      </header>
+
+      <div className="admin-wrap">
+        <aside>
+          <p>ASSESSMENTS</p>
+          <h2>回答一覧</h2>
+          <Link className="button compact admin-export" href="/admin/export">
+            CSV出力
+          </Link>
+          {params?.deleted && <div className="saved block">削除しました</div>}
+          {responses.length === 0 && <p className="admin-empty-small">まだ回答データがありません。</p>}
+          {responses.map((item) => (
+            <Link className={`response-row ${selected?.id === item.id ? "selected" : ""}`} key={item.id} href={`/admin?id=${item.id}`}>
+              <strong>{item.name}</strong>
+              <span>
+                {item.clinic_name} ／ {participantLabel(item.participant_type)}
+              </span>
+              <small>{formatDate(item.submitted_at)}</small>
+            </Link>
+          ))}
+        </aside>
+
+        <section className="admin-detail">
+          {!selected ? (
+            <div className="admin-empty-small">回答を選択してください。</div>
+          ) : (
+            <>
+              <p className="eyebrow teal">RESPONSE DETAIL</p>
+              <h1>{selected.name}さん</h1>
+              <p className="admin-meta">
+                {selected.clinic_name}　／　{participantLabel(selected.participant_type)}　／　{formatDate(selected.submitted_at)} 回答
+              </p>
+              {params?.saved && <div className="saved block">コメントを保存しました</div>}
+              <div className="admin-stats">
+                <div>
+                  <span>総合スコア</span>
+                  <b>{Number(selected.total_score).toFixed(1)}</b>
+                </div>
+                <div>
+                  <span>優先確認テーマ</span>
+                  <b className="theme-name">{priorities.join(" ／ ") || "未設定"}</b>
+                </div>
+              </div>
+
+              <div className="admin-result-grid">
+                <section className="result-card">
+                  <h2>レーダーチャート</h2>
+                  {chartScores.length > 0 ? <Radar data={chartScores} /> : <p className="admin-empty-small">テーマ別スコアがありません。</p>}
+                </section>
+                <section className="result-card">
+                  <h2>各項目の点数</h2>
+                  <div className="admin-answers">
+                    {answers.map((answer) => (
+                      <article key={answer.id}>
+                        <span>Q{answer.question_number}</span>
+                        <div>
+                          <strong>{answer.theme_name_snapshot}</strong>
+                          <p>{answer.question_text_snapshot}</p>
+                        </div>
+                        <b>{answer.score}</b>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <section className="report-editor">
+                <div>
+                  <p className="eyebrow teal">REPORT MAKER</p>
+                  <h2>コメント欄</h2>
+                  <p>管理者が編集するフィードバックコメントを保存できます。</p>
+                </div>
+                <form action={saveReportAction}>
+                  <input type="hidden" name="response_id" value={selected.id} />
+                  <div className="report-fields">
+                    <label>
+                      総評サマリー
+                      <textarea name="overall_comment" defaultValue={report?.overall_comment ?? ""} />
+                    </label>
+                    <label>
+                      強み
+                      <textarea name="strengths_comment" defaultValue={report?.strengths_comment ?? ""} />
+                    </label>
+                    <label>
+                      課題（優先テーマ）
+                      <textarea name="priority_comment" defaultValue={report?.priority_comment ?? ""} />
+                    </label>
+                    <label>
+                      アクション
+                      <textarea name="next_actions" defaultValue={report?.next_actions ?? ""} />
+                    </label>
+                    <label>
+                      内部メモ
+                      <textarea name="internal_notes" defaultValue={report?.internal_notes ?? ""} />
+                    </label>
+                  </div>
+                  <button className="button" type="submit">
+                    コメントを保存
+                  </button>
+                  <Link className="button subtle print-link" href={`/admin/reports/${selected.id}/print`} target="_blank">
+                    レポート印刷ページを開く
+                  </Link>
+                </form>
+              </section>
+
+              <section className="admin-danger-zone">
+                <h2>削除</h2>
+                <p>削除すると一覧には表示されなくなります。データは `deleted_at` を入れるソフト削除で保持します。</p>
+                <AdminDeleteForm responseId={selected.id} />
+              </section>
+            </>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}

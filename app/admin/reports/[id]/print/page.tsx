@@ -1,0 +1,91 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { PrintButton } from "@/components/PrintButton";
+import { Radar } from "@/components/Radar";
+import { formatDate, getAnswers, getReport, getResponse, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
+import { requireAdminUser } from "@/lib/admin/session";
+
+export const dynamic = "force-dynamic";
+
+export default async function ReportPrintPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireAdminUser();
+  const { id } = await params;
+  const response = await getResponse(id);
+  if (!response) notFound();
+
+  const answers = await getAnswers(id);
+  const report = await getReport(id);
+  const chartScores = normalizeScores(response.theme_scores);
+  const priorities = normalizePriorities(response.priority_themes);
+
+  return (
+    <main className="print-page">
+      <div className="print-actions">
+        <Link className="button subtle" href={`/admin?id=${id}`}>
+          管理画面へ戻る
+        </Link>
+        <PrintButton />
+      </div>
+
+      <section className="print-sheet">
+        <p className="eyebrow teal">CLINIC COMPASS REPORT</p>
+        <h1>院長コンパス 診断レポート</h1>
+        <p className="admin-meta">
+          {response.clinic_name} ／ {response.name}さん ／ {participantLabel(response.participant_type)} ／ {formatDate(response.submitted_at)}
+        </p>
+
+        <div className="admin-stats">
+          <div>
+            <span>総合スコア</span>
+            <b>{Number(response.total_score).toFixed(1)}</b>
+          </div>
+          <div>
+            <span>優先確認テーマ</span>
+            <b className="theme-name">{priorities.join(" ／ ") || "未設定"}</b>
+          </div>
+        </div>
+
+        <section className="print-section">
+          <h2>テーマ別スコア</h2>
+          {chartScores.length > 0 && <Radar data={chartScores} />}
+          <div className="score-list">
+            {chartScores.map((row) => (
+              <div key={row.name}>
+                <span>{row.name}</span>
+                <b>{row.score.toFixed(1)}</b>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="print-section">
+          <h2>管理者コメント</h2>
+          <h3>総評サマリー</h3>
+          <p>{report?.overall_comment || "未入力"}</p>
+          <h3>強み</h3>
+          <p>{report?.strengths_comment || "未入力"}</p>
+          <h3>課題（優先テーマ）</h3>
+          <p>{report?.priority_comment || "未入力"}</p>
+          <h3>アクション</h3>
+          <p>{report?.next_actions || "未入力"}</p>
+        </section>
+
+        <section className="print-section">
+          <h2>回答明細</h2>
+          <div className="admin-answers print-answers">
+            {answers.map((answer) => (
+              <article key={answer.id}>
+                <span>Q{answer.question_number}</span>
+                <div>
+                  <strong>{answer.theme_name_snapshot}</strong>
+                  <p>{answer.question_text_snapshot}</p>
+                </div>
+                <b>{answer.score}</b>
+              </article>
+            ))}
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
