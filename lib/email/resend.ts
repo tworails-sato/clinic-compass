@@ -3,6 +3,7 @@ import { Profile } from "@/lib/assessment";
 type MailInput = {
   profile: Profile;
   responseId: string;
+  submittedAt: string;
   resultUrl?: string;
 };
 
@@ -12,12 +13,46 @@ type SendMailInput = {
   html: string;
 };
 
+type MailStatus = {
+  ok: boolean;
+  error: string;
+};
+
+const ADMIN_URL = "https://clinic.ceo-sherpa.com/admin";
+
 function fromEmail() {
   return process.env.RESEND_FROM_EMAIL || "noreply@ceo-sherpa.com";
 }
 
-function clientNotifyEmail() {
-  return process.env.CLIENT_NOTIFY_EMAIL || process.env.CLINIC_CLIENT_NOTIFICATION_EMAIL || "";
+function normalizeEmail(value: string) {
+  const trimmed = value.trim();
+  const markdownMailto = trimmed.match(/\]\(mailto:([^)]+)\)/i);
+  if (markdownMailto?.[1]) return markdownMailto[1].trim();
+
+  return trimmed
+    .replace(/^mailto:/i, "")
+    .replace(/^\[/, "")
+    .replace(/\]$/, "")
+    .trim();
+}
+
+function clientNotifyEmails() {
+  const raw = process.env.CLIENT_NOTIFY_EMAIL || process.env.CLINIC_CLIENT_NOTIFICATION_EMAIL || "";
+  return raw
+    .split(",")
+    .map(normalizeEmail)
+    .filter(Boolean);
+}
+
+function formatSubmittedAt(value: string) {
+  return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 async function sendMail({ to, subject, html }: SendMailInput) {
@@ -49,7 +84,7 @@ async function sendMail({ to, subject, html }: SendMailInput) {
   return { ok: true };
 }
 
-export async function sendCompletionEmails({ profile, responseId, resultUrl }: MailInput) {
+export async function sendCompletionEmails({ profile, responseId, submittedAt, resultUrl }: MailInput) {
   const resultText = resultUrl
     ? `診断結果は以下のURLからご確認いただけます。<br/><a href="${resultUrl}">${resultUrl}</a>`
     : "診断結果の詳細については、後日担当者よりご連絡いたします。";
@@ -57,23 +92,25 @@ export async function sendCompletionEmails({ profile, responseId, resultUrl }: M
   const respondentHtml = `
     <p>${profile.name} 様</p>
     <p>この度は、院長コンパスを受検いただき、ありがとうございました。</p>
+    <p>診断が完了しました。</p>
     <p>${resultText}</p>
-    <p>今後の医院経営の課題整理にお役立てください。</p>
   `;
 
   const participantType = profile.type === "director" ? "院長" : "事務長";
   const clientHtml = `
-    <p>院長コンパスの診断が完了しました。</p>
+    <p>院長コンパスで新しい診断が完了しました。</p>
     <ul>
       <li>回答ID：${responseId}</li>
+      <li>受検者名：${profile.name}</li>
+      <li>メールアドレス：${profile.email}</li>
       <li>医院名：${profile.clinic}</li>
-      <li>氏名：${profile.name}</li>
-      <li>メール：${profile.email}</li>
       <li>対象者区分：${participantType}</li>
+      <li>診断日時：${formatSubmittedAt(submittedAt)}</li>
+      <li>管理画面URL：<a href="${ADMIN_URL}">${ADMIN_URL}</a></li>
     </ul>
   `;
 
-  const result = {
+  const result: { respondent: MailStatus; client: MailStatus } = {
     respondent: { ok: false, error: "" },
     client: { ok: false, error: "" },
   };
@@ -90,20 +127,32 @@ export async function sendCompletionEmails({ profile, responseId, resultUrl }: M
     console.error("[clinic-compass] Respondent mail failed", error);
   }
 
-  const notifyTo = clientNotifyEmail();
-  if (notifyTo) {
+  const notifyEmails = clientNotifyEmails();
+  if (notifyEmails.length === 0) {
+    console.info("[clinic-compass] CLIENT_NOTIFY_EMAIL is not configured. Client notification skipped.");
+    return result;
+  }
+
+  const clientErrors: string[] = [];
+  let clientSuccessCount = 0;
+
+  for (const to of notifyEmails) {
     try {
       await sendMail({
-        to: notifyTo,
-        subject: "【院長コンパス】診断完了通知",
+        to,
+        subject: "【院長コンパス】新しい診断が完了しました",
         html: clientHtml,
       });
-      result.client.ok = true;
+      clientSuccessCount += 1;
     } catch (error) {
-      result.client.error = error instanceof Error ? error.message : "Unknown mail error";
-      console.error("[clinic-compass] Client notification mail failed", error);
+      const message = error instanceof Error ? error.message : "Unknown mail error";
+      clientErrors.push(`${to}: ${message}`);
+      console.error(`[clinic-compass] Client notification mail failed: ${to}`, error);
     }
   }
+
+  result.client.ok = clientSuccessCount > 0;
+  result.client.error = clientErrors.join("\n");
 
   return result;
 }

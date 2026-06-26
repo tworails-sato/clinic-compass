@@ -35,6 +35,7 @@ export async function POST(request: Request) {
     const total = getTotalScore(grouped);
     const priorities = getPriorities(grouped);
     const themeScores = getThemeScores(questions, answers);
+    const submittedAt = new Date().toISOString();
 
     const inserted = (await supabaseAdminFetch("/rest/v1/clinic_assessment_responses", {
       method: "POST",
@@ -64,8 +65,9 @@ export async function POST(request: Request) {
           label: "詳細フィードバックを依頼する",
           url: "https://timerex.net/s/sato.motoki_765a/c6616a1a",
         },
+        submitted_at: submittedAt,
       }),
-    })) as Array<{ id: string; result_token: string }>;
+    })) as Array<{ id: string; result_token: string; submitted_at?: string }>;
 
     const response = inserted[0];
     if (!response?.id) {
@@ -94,6 +96,7 @@ export async function POST(request: Request) {
     const mailResult = await sendCompletionEmails({
       profile,
       responseId: response.id,
+      submittedAt: response.submitted_at || submittedAt,
     });
 
     const emailPatch: Record<string, string> = {};
