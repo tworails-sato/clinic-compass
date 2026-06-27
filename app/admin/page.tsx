@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/admin/auth-actions";
-import { saveReportAction } from "@/app/admin/actions";
 import { AdminDeleteForm } from "@/components/AdminDeleteForm";
+import { AdminReportEditor } from "@/components/AdminReportEditor";
 import { Radar } from "@/components/Radar";
+import { generateReportDraft } from "@/lib/admin/comment-drafts";
 import { formatDate, getAnswers, getReport, listResponses, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
 import { hasSupabaseEnv } from "@/lib/supabase/rest";
@@ -36,6 +37,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const report = selected ? await getReport(selected.id) : null;
   const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
   const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
+  const reportDraft = selected ? generateReportDraft(selected, chartScores) : null;
 
   return (
     <main className="admin">
@@ -64,7 +66,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
             <Link className={`response-row ${selected?.id === item.id ? "selected" : ""}`} key={item.id} href={`/admin?id=${item.id}`}>
               <strong>{item.name}</strong>
               <span>
-                {item.clinic_name} ／ {participantLabel(item.participant_type)}
+                {item.clinic_name} ・ {participantLabel(item.participant_type)}
               </span>
               <small>{formatDate(item.submitted_at)}</small>
             </Link>
@@ -79,9 +81,10 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               <p className="eyebrow teal">RESPONSE DETAIL</p>
               <h1>{selected.name}さん</h1>
               <p className="admin-meta">
-                {selected.clinic_name}　／　{participantLabel(selected.participant_type)}　／　{formatDate(selected.submitted_at)} 回答
+                {selected.clinic_name}　/　{participantLabel(selected.participant_type)}　/　{formatDate(selected.submitted_at)} 回答
               </p>
               {params?.saved && <div className="saved block">コメントを保存しました</div>}
+
               <div className="admin-stats">
                 <div>
                   <span>総合スコア</span>
@@ -89,7 +92,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                 </div>
                 <div>
                   <span>優先確認テーマ</span>
-                  <b className="theme-name">{priorities.join(" ／ ") || "未設定"}</b>
+                  <b className="theme-name">{priorities.join(" ・ ") || "未設定"}</b>
                 </div>
               </div>
 
@@ -119,39 +122,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                 <div>
                   <p className="eyebrow teal">REPORT MAKER</p>
                   <h2>コメント欄</h2>
-                  <p>管理者が編集するフィードバックコメントを保存できます。</p>
+                  <p>スコアに応じた自動下書きを叩き台として表示します。管理者が編集して保存できます。</p>
                 </div>
-                <form action={saveReportAction}>
-                  <input type="hidden" name="response_id" value={selected.id} />
-                  <div className="report-fields">
-                    <label>
-                      総評サマリー
-                      <textarea name="overall_comment" defaultValue={report?.overall_comment ?? ""} />
-                    </label>
-                    <label>
-                      強み
-                      <textarea name="strengths_comment" defaultValue={report?.strengths_comment ?? ""} />
-                    </label>
-                    <label>
-                      課題（優先テーマ）
-                      <textarea name="priority_comment" defaultValue={report?.priority_comment ?? ""} />
-                    </label>
-                    <label>
-                      アクション
-                      <textarea name="next_actions" defaultValue={report?.next_actions ?? ""} />
-                    </label>
-                    <label>
-                      内部メモ
-                      <textarea name="internal_notes" defaultValue={report?.internal_notes ?? ""} />
-                    </label>
-                  </div>
-                  <button className="button" type="submit">
-                    コメントを保存
-                  </button>
-                  <Link className="button subtle print-link" href={`/admin/reports/${selected.id}/print`} target="_blank">
-                    レポート印刷ページを開く
-                  </Link>
-                </form>
+                {reportDraft && <AdminReportEditor responseId={selected.id} report={report} draft={reportDraft} />}
               </section>
 
               <section className="admin-danger-zone">

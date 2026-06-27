@@ -96,14 +96,16 @@ export function normalizeScores(value: unknown): GroupScore[] {
 
 export function normalizePriorities(value: unknown) {
   if (Array.isArray(value)) {
-    return value.map((item) => {
-      if (typeof item === "string") return item;
-      if (item && typeof item === "object") {
-        const row = item as Record<string, unknown>;
-        return String(row.name ?? row.theme ?? "");
-      }
-      return "";
-    }).filter(Boolean);
+    return value
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item && typeof item === "object") {
+          const row = item as Record<string, unknown>;
+          return String(row.name ?? row.theme ?? "");
+        }
+        return "";
+      })
+      .filter(Boolean);
   }
 
   return [];
