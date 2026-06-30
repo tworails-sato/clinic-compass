@@ -62,10 +62,28 @@ export function ClinicLanding({ onStart }: Props) {
               <small>/ 5.0</small>
             </div>
             <div className="preview-radar" aria-hidden="true">
-              <svg viewBox="0 0 160 160">
-                <polygon points="80,18 136,52 124,124 80,146 36,124 24,52" />
-                <polygon points="80,38 118,60 110,112 80,129 49,111 44,62" />
-                <polygon className="preview-radar-area" points="80,32 112,66 98,104 80,121 55,109 39,66" />
+              <svg viewBox="0 0 240 220">
+                <g transform="translate(120 110)">
+                  <polygon points="0,-62 44,-44 62,0 44,44 0,62 -44,44 -62,0 -44,-44" />
+                  <polygon points="0,-42 30,-30 42,0 30,30 0,42 -30,30 -42,0 -30,-30" />
+                  <line x1="0" y1="0" x2="0" y2="-62" />
+                  <line x1="0" y1="0" x2="44" y2="-44" />
+                  <line x1="0" y1="0" x2="62" y2="0" />
+                  <line x1="0" y1="0" x2="44" y2="44" />
+                  <line x1="0" y1="0" x2="0" y2="62" />
+                  <line x1="0" y1="0" x2="-44" y2="44" />
+                  <line x1="0" y1="0" x2="-62" y2="0" />
+                  <line x1="0" y1="0" x2="-44" y2="-44" />
+                  <polygon className="preview-radar-area" points="0,-50 36,-34 48,-4 34,37 0,48 -31,30 -45,0 -30,-36" />
+                </g>
+                <text className="preview-radar-label" x="120" y="16" textAnchor="middle">業務オペレーション</text>
+                <text className="preview-radar-label" x="190" y="40" textAnchor="middle">人員配置・役割分担</text>
+                <text className="preview-radar-label" x="224" y="114" textAnchor="end">教育・育成</text>
+                <text className="preview-radar-label" x="190" y="194" textAnchor="middle">情報共有</text>
+                <text className="preview-radar-label" x="120" y="216" textAnchor="middle">権限移譲</text>
+                <text className="preview-radar-label" x="50" y="194" textAnchor="middle">数値管理・改善</text>
+                <text className="preview-radar-label" x="16" y="114" textAnchor="start">リスク管理</text>
+                <text className="preview-radar-label" x="50" y="40" textAnchor="middle">経営管理</text>
               </svg>
             </div>
             <div className="preview-bars">
