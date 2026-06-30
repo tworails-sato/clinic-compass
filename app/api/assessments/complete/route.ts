@@ -63,7 +63,7 @@ export async function POST(request: Request) {
         result_comment: "",
         cta: {
           label: "詳細フィードバックを依頼する",
-          url: "https://timerex.net/s/sato.motoki_765a/c6616a1a",
+          url: "https://timerex.net/s/sato.motoki_765a/c6616a1a/",
         },
         submitted_at: submittedAt,
       }),
