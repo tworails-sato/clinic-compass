@@ -33,15 +33,13 @@ function normalizeEmail(value: string) {
     .replace(/^mailto:/i, "")
     .replace(/^\[/, "")
     .replace(/\]$/, "")
+    .replace(/[<>]/g, "")
     .trim();
 }
 
 function clientNotifyEmails() {
   const raw = process.env.CLIENT_NOTIFY_EMAIL || process.env.CLINIC_CLIENT_NOTIFICATION_EMAIL || "";
-  return raw
-    .split(",")
-    .map(normalizeEmail)
-    .filter(Boolean);
+  return [...new Set(raw.split(/[,;\n]/).map(normalizeEmail).filter(Boolean))];
 }
 
 function formatSubmittedAt(value: string) {
@@ -132,6 +130,8 @@ export async function sendCompletionEmails({ profile, responseId, submittedAt, r
     console.info("[clinic-compass] CLIENT_NOTIFY_EMAIL is not configured. Client notification skipped.");
     return result;
   }
+
+  console.info(`[clinic-compass] Sending client notification to ${notifyEmails.length} recipient(s).`);
 
   const clientErrors: string[] = [];
   let clientSuccessCount = 0;

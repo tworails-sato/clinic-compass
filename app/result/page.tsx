@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 
-const feedbackUrl = "https://timerex.net/s/sato.motoki_765a/c6616a1a";
+const feedbackUrl = process.env.NEXT_PUBLIC_FEEDBACK_URL || "https://timerex.net/";
 
 function priorityComment(theme: string, index: number) {
   const openings = [
@@ -127,6 +127,15 @@ export default function ResultPage() {
                 </p>
               </details>
             ))}
+          </section>
+          <section className="feedback-cta-card">
+            <p>
+              診断結果をもとに、医院の課題整理や改善の優先順位について個別フィードバックをご希望の方は
+              こちらからご予約ください。
+            </p>
+            <a className="button cta-yellow" href={feedbackUrl} target="_blank" rel="noopener noreferrer">
+              個別フィードバックを予約する
+            </a>
           </section>
           <div className="result-actions">
             <Link
