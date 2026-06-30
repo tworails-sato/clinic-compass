@@ -24,6 +24,10 @@ function fromEmail() {
   return process.env.RESEND_FROM_EMAIL || "noreply@ceo-sherpa.com";
 }
 
+function timerexUrl() {
+  return process.env.TIMEREX_URL || process.env.NEXT_PUBLIC_TIMEREX_URL || "";
+}
+
 function normalizeEmail(value: string) {
   const trimmed = value.trim();
   const markdownMailto = trimmed.match(/\]\(mailto:([^)]+)\)/i);
@@ -83,15 +87,27 @@ async function sendMail({ to, subject, html }: SendMailInput) {
 }
 
 export async function sendCompletionEmails({ profile, responseId, submittedAt, resultUrl }: MailInput) {
-  const resultText = resultUrl
-    ? `診断結果は以下のURLからご確認いただけます。<br/><a href="${resultUrl}">${resultUrl}</a>`
-    : "診断結果の詳細については、後日担当者よりご連絡いたします。";
+  const feedbackUrl = timerexUrl();
+  const resultBlock = resultUrl
+    ? `
+      <p>診断結果は、以下のURLよりご確認いただけます。</p>
+      <p><strong>【診断結果を確認する】</strong><br/><a href="${resultUrl}">${resultUrl}</a></p>
+      <p>※結果確認URLの有効期限は、受検完了日から7日間です。</p>
+    `
+    : "<p>診断結果の詳細については、後日担当者よりご連絡いたします。</p>";
+  const feedbackBlock = feedbackUrl
+    ? `
+      <p>また、診断結果をもとに、医院の課題整理や改善の優先順位について個別フィードバックをご希望の場合は、以下よりご予約ください。</p>
+      <p><strong>【個別フィードバックを予約する】</strong><br/><a href="${feedbackUrl}">${feedbackUrl}</a></p>
+    `
+    : "";
 
   const respondentHtml = `
     <p>${profile.name} 様</p>
     <p>この度は、院長コンパスを受検いただき、ありがとうございました。</p>
-    <p>診断が完了しました。</p>
-    <p>${resultText}</p>
+    ${resultBlock}
+    ${feedbackBlock}
+    <p>今後ともよろしくお願いいたします。</p>
   `;
 
   const participantType = profile.type === "director" ? "院長" : "事務長";
@@ -116,7 +132,7 @@ export async function sendCompletionEmails({ profile, responseId, submittedAt, r
   try {
     await sendMail({
       to: profile.email,
-      subject: "【院長コンパス】診断が完了しました",
+      subject: "【院長コンパス】診断結果のご案内",
       html: respondentHtml,
     });
     result.respondent.ok = true;

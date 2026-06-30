@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 
-const feedbackUrl = process.env.NEXT_PUBLIC_FEEDBACK_URL || "https://timerex.net/s/sato.motoki_765a/c6616a1a/";
+const feedbackUrl = process.env.NEXT_PUBLIC_TIMEREX_URL || process.env.NEXT_PUBLIC_FEEDBACK_URL || "https://timerex.net/s/sato.motoki_765a/c6616a1a/";
 
 function priorityComment(theme: string, index: number) {
   const openings = [

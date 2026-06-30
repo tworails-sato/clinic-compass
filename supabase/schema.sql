@@ -53,6 +53,7 @@ create table if not exists public.clinic_assessment_questions (
 create table if not exists public.clinic_assessment_responses (
   id uuid primary key default gen_random_uuid(),
   result_token uuid not null default gen_random_uuid() unique,
+  result_expires_at timestamptz not null default (now() + interval '7 days'),
   question_set_id uuid references public.clinic_assessment_question_sets(id) on delete set null,
   question_set_code text not null,
   question_set_version integer not null,
@@ -173,3 +174,6 @@ values
   ('director-v1', 'director', 1, '院長コンパス 院長用 設問セット v1'),
   ('office-manager-v1', 'office_manager', 1, '院長コンパス 事務長用 設問セット v1')
 on conflict (code) do nothing;
+
+alter table public.clinic_assessment_responses
+  add column if not exists result_expires_at timestamptz not null default (now() + interval '7 days');

@@ -15,6 +15,10 @@ function questionSetCode(type: Profile["type"]) {
   return type === "director" ? "director-v1" : "office-manager-v1";
 }
 
+function appBaseUrl() {
+  return (process.env.NEXT_PUBLIC_APP_URL || "https://clinic.ceo-sherpa.com").replace(/\/$/, "");
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { profile?: Profile; answers?: Answers };
@@ -97,6 +101,7 @@ export async function POST(request: Request) {
       profile,
       responseId: response.id,
       submittedAt: response.submitted_at || submittedAt,
+      resultUrl: `${appBaseUrl()}/result/${response.result_token}`,
     });
 
     const emailPatch: Record<string, string> = {};
