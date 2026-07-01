@@ -19,6 +19,8 @@ type MailStatus = {
 };
 
 const ADMIN_URL = "https://clinic.ceo-sherpa.com/admin";
+const ADMIN_NOTIFICATION_INTERVAL_MS = 700;
+const RATE_LIMIT_RETRY_MS = 1500;
 
 function fromEmail() {
   return process.env.RESEND_FROM_EMAIL || "noreply@ceo-sherpa.com";
@@ -66,6 +68,14 @@ function formatSubmittedAt(value: string) {
   }).format(new Date(value));
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRateLimitError(error: unknown) {
+  return error instanceof Error && (error.message.includes("429") || error.message.includes("rate_limit_exceeded"));
+}
+
 async function sendMail({ to, subject, html }: SendMailInput) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
@@ -102,6 +112,17 @@ async function sendAdminNotification(to: string, html: string) {
     subject: "【院長コンパス】新しい診断が完了しました",
     html,
   });
+}
+
+async function sendAdminNotificationWithRetry(to: string, html: string) {
+  try {
+    return await sendAdminNotification(to, html);
+  } catch (error) {
+    if (!isRateLimitError(error)) throw error;
+    console.warn(`[clinic-compass] Admin notification rate limited. retrying once after ${RATE_LIMIT_RETRY_MS}ms. to=${to}`, error);
+    await sleep(RATE_LIMIT_RETRY_MS);
+    return sendAdminNotification(to, html);
+  }
 }
 
 export async function sendCompletionEmails({ profile, responseId, submittedAt, resultUrl }: MailInput) {
@@ -171,9 +192,14 @@ export async function sendCompletionEmails({ profile, responseId, submittedAt, r
   const clientErrors: string[] = [];
   let clientSuccessCount = 0;
 
-  for (const email of notifyEmails) {
+  for (const [index, email] of notifyEmails.entries()) {
+    if (index > 0) {
+      console.info(`[clinic-compass] Waiting ${ADMIN_NOTIFICATION_INTERVAL_MS}ms before next admin notification. to=${email}`);
+      await sleep(ADMIN_NOTIFICATION_INTERVAL_MS);
+    }
+
     try {
-      const sent = await sendAdminNotification(email, clientHtml);
+      const sent = await sendAdminNotificationWithRetry(email, clientHtml);
       if (sent.ok) clientSuccessCount += 1;
       console.info(`[clinic-compass] Admin notification accepted. to=${email} id=${sent.id || "n/a"}`);
     } catch (error) {
