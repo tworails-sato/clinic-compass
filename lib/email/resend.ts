@@ -28,22 +28,31 @@ function timerexUrl() {
   return process.env.TIMEREX_URL || process.env.NEXT_PUBLIC_TIMEREX_URL || "";
 }
 
-function normalizeEmail(value: string) {
-  const trimmed = value.trim();
-  const markdownMailto = trimmed.match(/\]\(mailto:([^)]+)\)/i);
-  if (markdownMailto?.[1]) return markdownMailto[1].trim();
+function hasFullWidthCharacters(value: string) {
+  return /[^\x00-\x7F]/.test(value);
+}
 
-  return trimmed
-    .replace(/^mailto:/i, "")
-    .replace(/^\[/, "")
-    .replace(/\]$/, "")
-    .replace(/[<>]/g, "")
-    .trim();
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function clientNotifyEmails() {
-  const raw = process.env.CLIENT_NOTIFY_EMAIL || process.env.CLINIC_CLIENT_NOTIFICATION_EMAIL || "";
-  return [...new Set(raw.split(/[,;\n]/).map(normalizeEmail).filter(Boolean))];
+  const raw = process.env.CLIENT_NOTIFY_EMAIL ?? process.env.CLINIC_CLIENT_NOTIFICATION_EMAIL ?? "";
+  const emails = raw
+    .split(",")
+    .map((email) => email.trim())
+    .filter(Boolean);
+
+  return emails.filter((email) => {
+    if (hasFullWidthCharacters(email)) {
+      console.warn(`[clinic-compass] CLIENT_NOTIFY_EMAIL contains full-width characters: ${email}`);
+    }
+    if (!isValidEmail(email)) {
+      console.warn(`[clinic-compass] CLIENT_NOTIFY_EMAIL contains invalid email address: ${email}`);
+      return false;
+    }
+    return true;
+  });
 }
 
 function formatSubmittedAt(value: string) {
@@ -61,7 +70,7 @@ async function sendMail({ to, subject, html }: SendMailInput) {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn("[clinic-compass] RESEND_API_KEY is not configured. Mail skipped.");
-    return { ok: false, skipped: true };
+    return { ok: false, skipped: true, id: "" };
   }
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -78,12 +87,21 @@ async function sendMail({ to, subject, html }: SendMailInput) {
     }),
   });
 
+  const text = await response.text();
   if (!response.ok) {
-    const message = await response.text();
-    throw new Error(`Resend failed: ${response.status} ${message}`);
+    throw new Error(`Resend failed: ${response.status} ${text}`);
   }
 
-  return { ok: true };
+  const data = text ? (JSON.parse(text) as { id?: string }) : {};
+  return { ok: true, skipped: false, id: data.id || "" };
+}
+
+async function sendAdminNotification(to: string, html: string) {
+  return sendMail({
+    to,
+    subject: "【院長コンパス】新しい診断が完了しました",
+    html,
+  });
 }
 
 export async function sendCompletionEmails({ profile, responseId, submittedAt, resultUrl }: MailInput) {
@@ -130,12 +148,13 @@ export async function sendCompletionEmails({ profile, responseId, submittedAt, r
   };
 
   try {
-    await sendMail({
+    const sent = await sendMail({
       to: profile.email,
       subject: "【院長コンパス】診断結果のご案内",
       html: respondentHtml,
     });
-    result.respondent.ok = true;
+    result.respondent.ok = sent.ok;
+    console.info(`[clinic-compass] Respondent mail accepted. to=${profile.email} id=${sent.id || "n/a"}`);
   } catch (error) {
     result.respondent.error = error instanceof Error ? error.message : "Unknown mail error";
     console.error("[clinic-compass] Respondent mail failed", error);
@@ -147,23 +166,20 @@ export async function sendCompletionEmails({ profile, responseId, submittedAt, r
     return result;
   }
 
-  console.info(`[clinic-compass] Sending client notification to ${notifyEmails.length} recipient(s).`);
+  console.info(`[clinic-compass] Sending client notification to ${notifyEmails.length} recipient(s): ${notifyEmails.join(",")}`);
 
   const clientErrors: string[] = [];
   let clientSuccessCount = 0;
 
-  for (const to of notifyEmails) {
+  for (const email of notifyEmails) {
     try {
-      await sendMail({
-        to,
-        subject: "【院長コンパス】新しい診断が完了しました",
-        html: clientHtml,
-      });
-      clientSuccessCount += 1;
+      const sent = await sendAdminNotification(email, clientHtml);
+      if (sent.ok) clientSuccessCount += 1;
+      console.info(`[clinic-compass] Admin notification accepted. to=${email} id=${sent.id || "n/a"}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown mail error";
-      clientErrors.push(`${to}: ${message}`);
-      console.error(`[clinic-compass] Client notification mail failed: ${to}`, error);
+      clientErrors.push(`${email}: ${message}`);
+      console.error("[clinic-compass] Admin notification failed:", email, error);
     }
   }
 
