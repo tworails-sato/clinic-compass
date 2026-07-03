@@ -5,6 +5,8 @@ export type Profile = {
   email: string;
   clinic: string;
   type: ParticipantType | "";
+  referralSource?: string;
+  referrerName?: string;
 };
 
 export type Answers = Record<number, number>;
@@ -40,7 +42,14 @@ export const managerGroups = {
   "リスク対応": ["個人情報・労務・トラブル対応"],
 };
 
-export const emptyProfile: Profile = { name: "", email: "", clinic: "", type: "" };
+export const emptyProfile: Profile = {
+  name: "",
+  email: "",
+  clinic: "",
+  type: "",
+  referralSource: "",
+  referrerName: "",
+};
 
 export function getQuestions(profile: Profile): Question[] {
   return profile.type ? questionsFor(profile.type) : [];

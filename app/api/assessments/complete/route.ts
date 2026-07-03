@@ -53,7 +53,10 @@ export async function POST(request: Request) {
         name: profile.name,
         email: profile.email,
         clinic_name: profile.clinic,
-        basic_info: {},
+        basic_info: {
+          referral_source: profile.referralSource ?? "",
+          referrer_name: profile.referrerName ?? "",
+        },
         total_score: Number(total.toFixed(2)),
         theme_scores: grouped.map((row) => ({
           name: row.name,
