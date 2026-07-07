@@ -135,6 +135,7 @@ export default function QuestionsPage() {
                       <p className="qtext">
                         <span>Q{displayNumberByQuestionId.get(q.id) ?? q.id}</span>
                         {q.text}
+                        {q.note && <small className="qnote">{q.note}</small>}
                       </p>
                       <div className="scale">
                         {scale.map((label, i) => (

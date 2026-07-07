@@ -1,7 +1,7 @@
 export type ParticipantType = "director" | "office_manager";
-export type Question = { id: number; theme: string; text: string };
+export type Question = { id: number; theme: string; text: string; note?: string };
 
-const d = (id: number, theme: string, text: string): Question => ({ id, theme, text });
+const d = (id: number, theme: string, text: string, note?: string): Question => ({ id, theme, text, note });
 
 export const directorQuestions: Question[] = [
   d(1, "医療方針・診療設計", "自院が「どのような患者に、どのような医療を提供する医院なのか」を、院長自身が説明できる。"),
@@ -21,7 +21,7 @@ export const directorQuestions: Question[] = [
   d(15, "患者体験", "診療内容や治療方針について、患者が理解し、納得できる説明ができている。"),
   d(16, "患者体験", "受付、診察、会計、問い合わせ対応で、スタッフによる対応のばらつきが少ない。"),
   d(17, "患者体験", "再診率や患者の声を確認し、継続受診や満足度の改善に活かしている。"),
-  d(18, "収益・業務設計", "レセプトの返戻、査定、算定漏れが起きたときに、原因を確認し改善につなげている。※自費診療のみの場合は3にしてください。"),
+  d(18, "収益・業務設計", "レセプトの返戻、査定、算定漏れが起きたときに、原因を確認し改善につなげている。", "※自費診療のみの場合は3にしてください。"),
   d(19, "品質・安全管理", "ヒヤリハットが起きたときに、スタッフがすぐに報告・共有できる状態になっている。"),
   d(20, "品質・安全管理", "感染対策、薬剤管理、医療機器の扱いについて、現場で迷わず確認できる手順がある。"),
   d(21, "品質・安全管理", "医療事故やヒヤリハットの事例を振り返り、同じことが起きないように運用を見直している。"),
@@ -42,7 +42,7 @@ export const directorQuestions: Question[] = [
   d(36, "経営管理・改善力", "経営数値や現場課題をもとに、改善策を話し合う機会がある。"),
 ];
 
-const m = (id: number, theme: string, text: string) => d(id, theme, text);
+const m = (id: number, theme: string, text: string, note?: string) => d(id, theme, text, note);
 
 export const officeManagerQuestions: Question[] = [
   m(1, "業務導線・役割分担", "受付から診察、検査、会計までの流れで、患者が迷ったり長く待たされたりする場面が少ない。"),
@@ -76,7 +76,7 @@ export const officeManagerQuestions: Question[] = [
   m(29, "数値管理", "待ち時間、残業時間、キャンセル数など、現場改善につながる数値を把握している。"),
   m(30, "改善活動", "数値や現場の状況をもとに、今どこを改善すべきか整理できている。"),
   m(31, "改善活動", "改善策を決めたあと、担当者と期限を決めて実行に移せている。"),
-  m(32, "請求・事務管理", "レセプトの返戻、査定、算定漏れの状況を確認できている。※自費診療のみの場合は3にしてください。"),
+  m(32, "請求・事務管理", "レセプトの返戻、査定、算定漏れの状況を確認できている。", "※自費診療のみの場合は3にしてください。"),
   m(33, "請求・事務管理", "請求や会計に関するミスが起きたとき、原因を確認し改善につなげている。"),
   m(34, "個人情報・労務・トラブル対応", "患者情報や個人情報の取り扱いルールが、スタッフに共有されている。"),
   m(35, "個人情報・労務・トラブル対応", "勤務時間、休憩、残業、シフトについて、大きな不安や不公平感が出にくい管理ができている。"),
