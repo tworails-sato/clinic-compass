@@ -27,6 +27,10 @@ export default function QuestionsPage() {
 
   const questions = useMemo(() => getQuestions(profile), [profile]);
   const themes = useMemo(() => getThemes(questions), [questions]);
+  const displayNumberByQuestionId = useMemo(() => {
+    const displayedQuestions = themes.flatMap((theme) => questions.filter((question) => question.theme === theme));
+    return new Map(displayedQuestions.map((question, index) => [question.id, index + 1]));
+  }, [questions, themes]);
   const answered = Object.keys(answers).length;
 
   function setAnswer(questionId: number, value: number) {
@@ -39,7 +43,7 @@ export default function QuestionsPage() {
   async function submit() {
     const missing = questions.find((q) => !answers[q.id]);
     if (missing) {
-      setError(`未回答の設問があります。No.${missing.id}から回答してください。`);
+      setError(`未回答の設問があります。No.${displayNumberByQuestionId.get(missing.id) ?? missing.id}から回答してください。`);
       setTimeout(() => document.getElementById(`q-${missing.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 10);
       return;
     }
@@ -129,7 +133,7 @@ export default function QuestionsPage() {
                   return (
                     <article className={`question ${missing ? "unanswered" : ""}`} id={`q-${q.id}`} key={q.id}>
                       <p className="qtext">
-                        <span>Q{q.id}</span>
+                        <span>Q{displayNumberByQuestionId.get(q.id) ?? q.id}</span>
                         {q.text}
                       </p>
                       <div className="scale">
