@@ -125,7 +125,15 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                   <h2>コメント欄</h2>
                   <p>スコアに応じた自動下書きを叩き台として表示します。管理者が編集して保存できます。</p>
                 </div>
-                {reportDraft && <AdminReportEditor responseId={selected.id} report={report} draft={reportDraft} referralMemo={referralMemo} />}
+                {reportDraft && (
+                  <AdminReportEditor
+                    key={selected.id}
+                    responseId={selected.id}
+                    report={report}
+                    draft={reportDraft}
+                    referralMemo={referralMemo}
+                  />
+                )}
               </section>
 
               <section className="admin-danger-zone">
