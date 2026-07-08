@@ -10,15 +10,28 @@ type Props = {
   responseId: string;
   report: AdminReport | null;
   draft: ReportDraft;
+  referralMemo?: string;
 };
 
 function isEmpty(value?: string) {
   return !value || value.trim() === "";
 }
 
-export function AdminReportEditor({ responseId, report, draft }: Props) {
+function mergeInternalNotesWithReferralMemo(internalNotes?: string, referralMemo = "") {
+  const trimmedNotes = internalNotes?.trim() ?? "";
+  const trimmedReferralMemo = referralMemo.trim();
+
+  if (!trimmedReferralMemo) return internalNotes ?? "";
+  if (!trimmedNotes) return trimmedReferralMemo;
+  if (trimmedNotes.includes(trimmedReferralMemo)) return internalNotes ?? "";
+
+  return `${internalNotes}\n\n${trimmedReferralMemo}`;
+}
+
+export function AdminReportEditor({ responseId, report, draft, referralMemo = "" }: Props) {
   const initialValues = useMemo(() => applyDraftToEmptyReportFields(report, draft), [report, draft]);
   const [values, setValues] = useState(initialValues);
+  const internalNotesDefault = mergeInternalNotesWithReferralMemo(report?.internal_notes, referralMemo);
 
   const draftedFields = {
     overall_comment: isEmpty(report?.overall_comment),
@@ -67,7 +80,7 @@ export function AdminReportEditor({ responseId, report, draft }: Props) {
         </label>
         <label>
           内部メモ
-          <textarea name="internal_notes" defaultValue={report?.internal_notes ?? ""} />
+          <textarea name="internal_notes" defaultValue={internalNotesDefault} />
         </label>
       </div>
       <button className="button" type="submit">

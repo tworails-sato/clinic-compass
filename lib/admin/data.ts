@@ -11,6 +11,7 @@ export type AdminResponse = {
   theme_scores: unknown;
   priority_themes: unknown;
   submitted_at: string;
+  basic_info: unknown;
 };
 
 export type AdminAnswer = {
@@ -30,7 +31,7 @@ export type AdminReport = {
   internal_notes?: string;
 };
 
-const responseSelect = "id,participant_type,name,email,clinic_name,total_score,theme_scores,priority_themes,submitted_at";
+const responseSelect = "id,participant_type,name,email,clinic_name,total_score,theme_scores,priority_themes,submitted_at,basic_info";
 
 export async function listResponses(): Promise<AdminResponse[]> {
   return supabaseAdminFetch(`/rest/v1/clinic_assessment_responses?deleted_at=is.null&select=${responseSelect}&order=submitted_at.desc`) as Promise<AdminResponse[]>;
@@ -69,6 +70,24 @@ export function formatDate(date: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(date));
+}
+
+export function formatReferralMemo(basicInfo: unknown) {
+  if (!basicInfo || typeof basicInfo !== "object") return "";
+
+  const row = basicInfo as Record<string, unknown>;
+  const referralSource = String(row.referral_source ?? "").trim();
+  const referrerName = String(row.referrer_name ?? "").trim();
+
+  if (!referralSource && !referrerName) return "";
+
+  return [
+    "【紹介情報】",
+    referralSource ? `紹介元：${referralSource}` : "",
+    referrerName ? `ご紹介者様のお名前：${referrerName}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 export function normalizeScores(value: unknown): GroupScore[] {

@@ -4,7 +4,7 @@ import { AdminDeleteForm } from "@/components/AdminDeleteForm";
 import { AdminReportEditor } from "@/components/AdminReportEditor";
 import { Radar } from "@/components/Radar";
 import { generateReportDraft } from "@/lib/admin/comment-drafts";
-import { formatDate, getAnswers, getReport, listResponses, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
+import { formatDate, formatReferralMemo, getAnswers, getReport, listResponses, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
 import { hasSupabaseEnv } from "@/lib/supabase/rest";
 
@@ -38,6 +38,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
   const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
   const reportDraft = selected ? generateReportDraft(selected, chartScores) : null;
+  const referralMemo = selected ? formatReferralMemo(selected.basic_info) : "";
 
   return (
     <main className="admin">
@@ -124,7 +125,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                   <h2>コメント欄</h2>
                   <p>スコアに応じた自動下書きを叩き台として表示します。管理者が編集して保存できます。</p>
                 </div>
-                {reportDraft && <AdminReportEditor responseId={selected.id} report={report} draft={reportDraft} />}
+                {reportDraft && <AdminReportEditor responseId={selected.id} report={report} draft={reportDraft} referralMemo={referralMemo} />}
               </section>
 
               <section className="admin-danger-zone">
