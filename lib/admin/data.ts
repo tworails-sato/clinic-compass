@@ -62,6 +62,7 @@ export function participantLabel(type: AdminResponse["participant_type"]) {
 
 export function formatDate(date: string) {
   return new Intl.DateTimeFormat("ja-JP", {
+    timeZone: "Asia/Tokyo",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
