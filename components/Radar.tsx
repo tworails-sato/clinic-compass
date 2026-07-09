@@ -1,15 +1,17 @@
 import { GroupScore } from "@/lib/assessment";
 
-export function Radar({ data }: { data: GroupScore[] }) {
+export function Radar({ data, averageData = [] }: { data: GroupScore[]; averageData?: GroupScore[] }) {
   const center = 150;
   const radius = 102;
   const n = data.length;
+  const averageByName = new Map(averageData.map((row) => [row.name, row.score]));
   const point = (value: number, i: number) => {
     const angle = -Math.PI / 2 + (i * Math.PI * 2) / n;
     const r = (radius * value) / 5;
     return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
   };
   const full = (v: number) => data.map((_, i) => point(v, i)).join(" ");
+  const averagePoints = data.map((d, i) => point(averageByName.get(d.name) ?? 0, i)).join(" ");
 
   return (
     <div className="radar">
@@ -27,6 +29,7 @@ export function Radar({ data }: { data: GroupScore[] }) {
             className="radar-axis"
           />
         ))}
+        {averageData.length > 0 && <polygon points={averagePoints} className="radar-average-area" />}
         <polygon points={data.map((d, i) => point(d.score, i)).join(" ")} className="radar-area" />
         {data.map((d, i) => {
           const angle = -Math.PI / 2 + (i * Math.PI * 2) / n;
@@ -44,6 +47,18 @@ export function Radar({ data }: { data: GroupScore[] }) {
           );
         })}
       </svg>
+      {averageData.length > 0 && (
+        <div className="radar-legend">
+          <span>
+            <i className="current" />
+            今回の結果
+          </span>
+          <span>
+            <i className="average" />
+            過去受検者平均
+          </span>
+        </div>
+      )}
     </div>
   );
 }

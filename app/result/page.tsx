@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
+import type { ThemeComparison } from "@/lib/score-comparison";
 
 const feedbackUrl = process.env.NEXT_PUBLIC_TIMEREX_URL || process.env.NEXT_PUBLIC_FEEDBACK_URL || "https://timerex.net/s/sato.motoki_765a/c6616a1a/";
 
@@ -24,6 +26,7 @@ export default function ResultPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [answers, setAnswers] = useState<Answers>({});
+  const [averageComparison, setAverageComparison] = useState<{ count: number; comparisons: ThemeComparison[] } | null>(null);
 
   useEffect(() => {
     const savedProfile = window.sessionStorage.getItem(storageKeys.profile);
@@ -39,6 +42,45 @@ export default function ResultPage() {
   const grouped = useMemo(() => getGroupedScores(profile, answers), [profile, answers]);
   const total = getTotalScore(grouped);
   const priorities = getPriorities(grouped);
+  const averageScores = useMemo(
+    () =>
+      averageComparison?.comparisons
+        .filter((comparison) => comparison.averageScore !== null)
+        .map((comparison) => ({ name: comparison.name, score: comparison.averageScore ?? 0, children: [] })) ?? [],
+    [averageComparison],
+  );
+
+  useEffect(() => {
+    if (!profile.type || grouped.length === 0) return;
+
+    const responseId = window.sessionStorage.getItem(storageKeys.savedResponseId) ?? "";
+    let cancelled = false;
+
+    fetch("/api/assessment-averages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        participantType: profile.type,
+        responseId,
+        scores: grouped,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled && data?.ok) {
+          setAverageComparison({ count: data.count ?? 0, comparisons: data.comparisons ?? [] });
+        }
+      })
+      .catch((error) => {
+        console.error("[clinic-compass] Average comparison fetch failed", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile.type, grouped]);
 
   if (!profile.type) return null;
 
@@ -62,7 +104,7 @@ export default function ResultPage() {
         </section>
         <div className="wrap result-content">
           <section className="result-intro">
-            <h2>いまの医院を、地図のように眺める。</h2>
+            <h2>医院の現状を、地図のように俯瞰する</h2>
             <p>この結果は優劣を決めるものではありません。具体的な状況を確認し、次の行動を考えるための入り口です。</p>
           </section>
           <div className="result-grid">
@@ -71,7 +113,7 @@ export default function ResultPage() {
                 <p className="eyebrow teal">THEME BALANCE</p>
                 <h2>テーマ別スコア</h2>
               </div>
-              <Radar data={grouped} />
+              <Radar data={grouped} averageData={averageScores} />
               <div className="score-list">
                 {grouped.map((row) => (
                   <div key={row.name}>
@@ -98,6 +140,7 @@ export default function ResultPage() {
               ))}
             </section>
           </div>
+          {averageComparison && <AverageComparison comparisons={averageComparison.comparisons} count={averageComparison.count} />}
           <section className="comment-card">
             <p className="eyebrow">COMPASS NOTE</p>
             <h2>優先確認テーマから見る、次の一歩。</h2>

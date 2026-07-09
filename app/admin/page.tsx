@@ -2,9 +2,20 @@ import Link from "next/link";
 import { logoutAction } from "@/app/admin/auth-actions";
 import { AdminDeleteForm } from "@/components/AdminDeleteForm";
 import { AdminReportEditor } from "@/components/AdminReportEditor";
+import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { generateReportDraft } from "@/lib/admin/comment-drafts";
-import { formatDate, formatReferralMemo, getAnswers, getReport, listResponses, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
+import {
+  formatDate,
+  formatReferralMemo,
+  getAnswers,
+  getAverageComparisonForResponse,
+  getReport,
+  listResponses,
+  normalizePriorities,
+  normalizeScores,
+  participantLabel,
+} from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
 import { hasSupabaseEnv } from "@/lib/supabase/rest";
 
@@ -37,7 +48,11 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const report = selected ? await getReport(selected.id) : null;
   const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
   const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
-  const reportDraft = selected ? generateReportDraft(selected, chartScores) : null;
+  const averageComparison = selected ? await getAverageComparisonForResponse(selected, chartScores) : null;
+  const averageScores = averageComparison?.comparisons
+    .filter((comparison) => comparison.averageScore !== null)
+    .map((comparison) => ({ name: comparison.name, score: comparison.averageScore ?? 0, children: [] })) ?? [];
+  const reportDraft = selected ? generateReportDraft(selected, chartScores, averageComparison?.comparisons ?? [], averageComparison?.count ?? 0) : null;
   const referralMemo = selected ? formatReferralMemo(selected.basic_info) : "";
 
   return (
@@ -100,7 +115,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               <div className="admin-result-grid">
                 <section className="result-card">
                   <h2>レーダーチャート</h2>
-                  {chartScores.length > 0 ? <Radar data={chartScores} /> : <p className="admin-empty-small">テーマ別スコアがありません。</p>}
+                  {chartScores.length > 0 ? <Radar data={chartScores} averageData={averageScores} /> : <p className="admin-empty-small">テーマ別スコアがありません。</p>}
                 </section>
                 <section className="result-card">
                   <h2>各項目の点数</h2>
@@ -118,6 +133,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                   </div>
                 </section>
               </div>
+
+              {averageComparison && <AverageComparison comparisons={averageComparison.comparisons} count={averageComparison.count} />}
 
               <section className="report-editor">
                 <div>

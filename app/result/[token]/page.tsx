@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { SiteHeader } from "@/components/SiteHeader";
-import { normalizePriorities, normalizeScores } from "@/lib/admin/data";
+import { getAverageComparisonForResponse, normalizePriorities, normalizeScores } from "@/lib/admin/data";
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,10 @@ export default async function PublicResultPage({ params }: { params: Promise<{ t
 
   const grouped = normalizeScores(response.theme_scores);
   const priorities = normalizePriorities(response.priority_themes);
+  const averageComparison = await getAverageComparisonForResponse(response, grouped);
+  const averageScores = averageComparison.comparisons
+    .filter((comparison) => comparison.averageScore !== null)
+    .map((comparison) => ({ name: comparison.name, score: comparison.averageScore ?? 0, children: [] }));
   const feedbackUrl = timerexUrl();
 
   return (
@@ -116,7 +121,7 @@ export default async function PublicResultPage({ params }: { params: Promise<{ t
                 <p className="eyebrow teal">THEME BALANCE</p>
                 <h2>テーマ別スコア</h2>
               </div>
-              {grouped.length > 0 ? <Radar data={grouped} /> : <p className="hint">テーマ別スコアがありません。</p>}
+              {grouped.length > 0 ? <Radar data={grouped} averageData={averageScores} /> : <p className="hint">テーマ別スコアがありません。</p>}
               <div className="score-list">
                 {grouped.map((row) => (
                   <div key={row.name}>
@@ -144,6 +149,8 @@ export default async function PublicResultPage({ params }: { params: Promise<{ t
               ))}
             </section>
           </div>
+
+          <AverageComparison comparisons={averageComparison.comparisons} count={averageComparison.count} />
 
           {feedbackUrl && (
             <section className="feedback-cta-card">

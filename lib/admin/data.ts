@@ -1,5 +1,6 @@
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
 import { GroupScore } from "@/lib/assessment";
+import { buildAverageComparison, type AverageComparisonResult } from "@/lib/score-comparison";
 
 export type AdminResponse = {
   id: string;
@@ -55,6 +56,20 @@ export async function getReport(responseId: string): Promise<AdminReport | null>
     `/rest/v1/clinic_assessment_reports?response_id=eq.${encodeURIComponent(responseId)}&select=response_id,overall_comment,strengths_comment,priority_comment,next_actions,internal_notes&limit=1`,
   )) as AdminReport[];
   return rows[0] ?? null;
+}
+
+export async function getAverageComparisonForResponse(
+  response: Pick<AdminResponse, "id" | "participant_type">,
+  currentScores: GroupScore[],
+): Promise<AverageComparisonResult> {
+  const rows = (await supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_responses?deleted_at=is.null&participant_type=eq.${encodeURIComponent(response.participant_type)}&select=id,participant_type,theme_scores,basic_info`,
+  )) as Array<Pick<AdminResponse, "id" | "participant_type" | "theme_scores" | "basic_info">>;
+
+  return buildAverageComparison(currentScores, rows, {
+    participantType: response.participant_type,
+    currentResponseId: response.id,
+  });
 }
 
 export function participantLabel(type: AdminResponse["participant_type"]) {
