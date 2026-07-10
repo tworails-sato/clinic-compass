@@ -3,8 +3,11 @@ import type { ThemeComparison } from "@/lib/score-comparison";
 export function AverageComparison({ comparisons, count }: { comparisons: ThemeComparison[]; count: number }) {
   if (!comparisons.length) return null;
 
-  const strengths = comparisons.filter((comparison) => comparison.label === "平均より高い");
+  const relativeStrengths = comparisons.filter((comparison) => comparison.label === "平均より高い");
+  const fallbackStrengths = [...comparisons].sort((a, b) => b.score - a.score).slice(0, 1);
+  const strengths = relativeStrengths.length > 0 ? relativeStrengths : fallbackStrengths;
   const priorities = comparisons.filter((comparison) => comparison.label === "平均より低い");
+  const usesFallbackStrength = relativeStrengths.length === 0;
 
   return (
     <section className="average-comparison">
@@ -23,18 +26,21 @@ export function AverageComparison({ comparisons, count }: { comparisons: ThemeCo
           <article>
             <small>RELATIVE STRENGTH</small>
             <h3>相対的な強み</h3>
-            {strengths.length > 0 ? (
-              <ul>
-                {strengths.map((comparison) => (
-                  <li key={comparison.name}>
-                    <strong>{comparison.name}</strong>
-                    <span>{comparison.diff !== null ? `平均との差分 ${comparison.diff >= 0 ? "+" : ""}${comparison.diff.toFixed(1)}` : ""}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>現時点では、平均を明確に上回るテーマはありません。</p>
-            )}
+            <ul>
+              {strengths.map((comparison) => (
+                <li key={comparison.name}>
+                  <strong>{comparison.name}</strong>
+                  <span>
+                    {usesFallbackStrength
+                      ? `今回スコア ${comparison.score.toFixed(1)}`
+                      : comparison.diff !== null
+                        ? `平均との差分 ${comparison.diff >= 0 ? "+" : ""}${comparison.diff.toFixed(1)}`
+                        : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {usesFallbackStrength && <p>平均を明確に上回るテーマがないため、今回スコアが最も高いテーマを強み候補として表示しています。</p>}
           </article>
           <article>
             <small>PRIORITY CHECK</small>

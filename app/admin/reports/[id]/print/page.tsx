@@ -1,8 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AverageComparison } from "@/components/AverageComparison";
 import { PrintButton } from "@/components/PrintButton";
 import { Radar } from "@/components/Radar";
-import { formatDate, getAnswers, getReport, getResponse, normalizePriorities, normalizeScores, participantLabel } from "@/lib/admin/data";
+import {
+  formatDate,
+  getAnswers,
+  getAverageComparisonForResponse,
+  getReport,
+  getResponse,
+  normalizePriorities,
+  normalizeScores,
+  participantLabel,
+} from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +27,10 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
   const report = await getReport(id);
   const chartScores = normalizeScores(response.theme_scores);
   const priorities = normalizePriorities(response.priority_themes);
+  const averageComparison = await getAverageComparisonForResponse(response, chartScores);
+  const averageScores = averageComparison.comparisons
+    .filter((comparison) => comparison.averageScore !== null)
+    .map((comparison) => ({ name: comparison.name, score: comparison.averageScore ?? 0, children: [] }));
 
   return (
     <main className="print-page">
@@ -47,7 +61,7 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
 
         <section className="print-section">
           <h2>テーマ別スコア</h2>
-          {chartScores.length > 0 && <Radar data={chartScores} />}
+          {chartScores.length > 0 && <Radar data={chartScores} averageData={averageScores} />}
           <div className="score-list">
             {chartScores.map((row) => (
               <div key={row.name}>
@@ -56,6 +70,10 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
               </div>
             ))}
           </div>
+        </section>
+
+        <section className="print-section">
+          <AverageComparison comparisons={averageComparison.comparisons} count={averageComparison.count} />
         </section>
 
         <section className="print-section">
