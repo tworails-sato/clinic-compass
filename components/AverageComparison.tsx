@@ -40,7 +40,6 @@ export function AverageComparison({ comparisons, count }: { comparisons: ThemeCo
                 </li>
               ))}
             </ul>
-            {usesFallbackStrength && <p>平均を明確に上回るテーマがないため、今回スコアが最も高いテーマを強み候補として表示しています。</p>}
           </article>
           <article>
             <small>PRIORITY CHECK</small>
