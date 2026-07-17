@@ -20,10 +20,12 @@ export default function StartPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [error, setError] = useState("");
+  const [hasDraft, setHasDraft] = useState(false);
 
   useEffect(() => {
     const saved = window.sessionStorage.getItem(storageKeys.profile) ?? window.localStorage.getItem(storageKeys.profile);
     if (saved) setProfile({ ...emptyProfile, ...JSON.parse(saved) });
+    setHasDraft(Boolean(window.localStorage.getItem(storageKeys.answers) || window.localStorage.getItem(storageKeys.draftId)));
   }, []);
 
   useEffect(() => {
@@ -61,6 +63,30 @@ export default function StartPage() {
     window.localStorage.setItem(storageKeys.profile, JSON.stringify(profile));
     window.sessionStorage.removeItem(storageKeys.answers);
     window.localStorage.removeItem(storageKeys.answers);
+    router.push("/questions");
+  }
+
+  function resumeDraft() {
+    const savedProfile = window.localStorage.getItem(storageKeys.profile);
+    const savedAnswers = window.localStorage.getItem(storageKeys.answers);
+    const savedDraftId = window.localStorage.getItem(storageKeys.draftId);
+
+    if (!savedProfile) {
+      setError("再開できる途中保存データが見つかりませんでした。");
+      setHasDraft(false);
+      return;
+    }
+
+    const draftProfile = { ...emptyProfile, ...JSON.parse(savedProfile) } as Profile;
+    if (!draftProfile.name || !draftProfile.email || !draftProfile.clinic || !draftProfile.type) {
+      setProfile(draftProfile);
+      setError("途中保存データを読み込みました。未入力の基本情報を入力してから設問へ進んでください。");
+      return;
+    }
+
+    window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(draftProfile));
+    if (savedAnswers) window.sessionStorage.setItem(storageKeys.answers, savedAnswers);
+    if (savedDraftId) window.sessionStorage.setItem(storageKeys.draftId, savedDraftId);
     router.push("/questions");
   }
 
@@ -130,9 +156,19 @@ export default function StartPage() {
               )}
             </div>
             {error && <p className="error">{error}</p>}
-            <button className="button" onClick={start} type="button">
-              設問へ進む →
-            </button>
+            <div className="start-actions">
+              <button className="button" onClick={start} type="button">
+                設問へ進む →
+              </button>
+              {hasDraft && (
+                <button className="button resume-button" onClick={resumeDraft} type="button">
+                  途中から再開する
+                </button>
+              )}
+            </div>
+            <p className="resume-note">
+              途中保存した場合は、同じ端末・同じブラウザで再開できます。タブやブラウザを閉じた場合、環境によっては、はじめからとなる場合があります。
+            </p>
           </section>
         </div>
       </main>
