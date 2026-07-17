@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/admin/session";
 import { formatDate, getTypeResult, listResponses, normalizePriorities, participantLabel } from "@/lib/admin/data";
+import { getTypeDefinition } from "@/lib/type-diagnosis/engine";
 
 function escapeCsv(value: unknown) {
   const text = String(value ?? "");
@@ -13,9 +14,27 @@ export async function GET() {
 
   const rows = await listResponses();
   const typeResults = await Promise.all(rows.map((row) => getTypeResult(row.id)));
-  const header = ["回答ID", "回答日時", "医院名", "氏名", "メール", "対象者区分", "総合スコア", "優先確認テーマ", "12タイプ", "サブタイプ候補", "成熟度"];
+  const header = [
+    "回答ID",
+    "回答日時",
+    "医院名",
+    "氏名",
+    "メール",
+    "対象者区分",
+    "総合スコア",
+    "優先確認テーマ",
+    "メインタイプ",
+    "サブタイプ",
+    "動物",
+    "6特性スコア",
+    "補助指標",
+    "判定ステータス",
+    "成熟度",
+    "判定日時",
+  ];
   const body = rows.map((row, index) => {
     const typeResult = typeResults[index];
+    const definition = typeResult ? getTypeDefinition(typeResult.respondentType, typeResult.mainTypeKey) : null;
     return [
       row.id,
       formatDate(row.submitted_at),
@@ -27,7 +46,12 @@ export async function GET() {
       normalizePriorities(row.priority_themes).join(" / "),
       typeResult?.mainTypeLabel ?? "",
       typeResult?.subTypeLabel ?? "",
+      definition?.animal ?? "",
+      formatScoreRecord(typeResult?.featureScores),
+      formatScoreRecord(typeResult?.auxiliaryScores),
+      typeResult?.typeJudgementStatus ?? "",
       typeResult?.maturityLabel ?? "",
+      typeResult?.calculatedAt ? formatDate(typeResult.calculatedAt) : "",
     ];
   });
 
@@ -38,4 +62,11 @@ export async function GET() {
       "Content-Disposition": `attachment; filename="clinic-compass-responses.csv"`,
     },
   });
+}
+
+function formatScoreRecord(scores?: Record<string, number>) {
+  if (!scores) return "";
+  return Object.entries(scores)
+    .map(([key, value]) => `${key}:${Number(value).toFixed(1)}`)
+    .join(" / ");
 }

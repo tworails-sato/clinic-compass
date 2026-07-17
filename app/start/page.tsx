@@ -22,9 +22,24 @@ export default function StartPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const saved = window.sessionStorage.getItem(storageKeys.profile);
+    const saved = window.sessionStorage.getItem(storageKeys.profile) ?? window.localStorage.getItem(storageKeys.profile);
     if (saved) setProfile({ ...emptyProfile, ...JSON.parse(saved) });
   }, []);
+
+  useEffect(() => {
+    if (!profile.name && !profile.email && !profile.clinic && !profile.type && !profile.referralSource) return;
+    window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(profile));
+    window.localStorage.setItem(storageKeys.profile, JSON.stringify(profile));
+
+    const draftId = getOrCreateDraftId();
+    const timeout = window.setTimeout(() => {
+      saveDraft(draftId, profile, getLocalAnswers()).catch((err) => {
+        console.error("[clinic-compass] Profile draft save failed", err);
+      });
+    }, 450);
+
+    return () => window.clearTimeout(timeout);
+  }, [profile]);
 
   function updateProfile(next: Partial<Profile>) {
     setProfile((current) => ({ ...current, ...next }));
@@ -43,7 +58,9 @@ export default function StartPage() {
     }
 
     window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(profile));
+    window.localStorage.setItem(storageKeys.profile, JSON.stringify(profile));
     window.sessionStorage.removeItem(storageKeys.answers);
+    window.localStorage.removeItem(storageKeys.answers);
     router.push("/questions");
   }
 
@@ -121,4 +138,31 @@ export default function StartPage() {
       </main>
     </>
   );
+}
+
+function getOrCreateDraftId() {
+  const existing = window.localStorage.getItem(storageKeys.draftId) || window.sessionStorage.getItem(storageKeys.draftId);
+  if (existing) return existing;
+  const next = crypto.randomUUID();
+  window.localStorage.setItem(storageKeys.draftId, next);
+  window.sessionStorage.setItem(storageKeys.draftId, next);
+  return next;
+}
+
+function getLocalAnswers() {
+  const saved = window.sessionStorage.getItem(storageKeys.answers) ?? window.localStorage.getItem(storageKeys.answers);
+  if (!saved) return {};
+  try {
+    return JSON.parse(saved) as Record<number, number>;
+  } catch {
+    return {};
+  }
+}
+
+async function saveDraft(draftId: string, profile: Profile, answers: Record<number, number>) {
+  await fetch("/api/assessments/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save", draftId, profile, answers }),
+  });
 }

@@ -13,6 +13,7 @@ import {
   getAverageComparisonForResponse,
   getReport,
   getTypeResult,
+  listDrafts,
   listResponses,
   normalizePriorities,
   normalizeScores,
@@ -45,6 +46,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const params = await searchParams;
 
   const responses = await listResponses();
+  const drafts = await listDrafts();
+  const responseTypeResults = await Promise.all(responses.map((row) => getTypeResult(row.id)));
+  const typeResultByResponseId = new Map(responses.map((row, index) => [row.id, responseTypeResults[index]]));
   const selected = responses.find((row) => row.id === params?.id) ?? responses[0];
   const answers = selected ? await getAnswers(selected.id) : [];
   const report = selected ? await getReport(selected.id) : null;
@@ -87,9 +91,29 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               <span>
                 {item.clinic_name} ・ {participantLabel(item.participant_type)}
               </span>
+              {typeResultByResponseId.get(item.id)?.mainTypeLabel && <span>12タイプ：{typeResultByResponseId.get(item.id)?.mainTypeLabel}</span>}
               <small>{formatDate(item.submitted_at)}</small>
             </Link>
           ))}
+          <div className="admin-draft-list">
+            <p>DRAFTS</p>
+            <h2>途中保存</h2>
+            {drafts.length === 0 && <p className="admin-empty-small">途中保存データはありません。</p>}
+            {drafts.map((draft) => (
+              <article className="draft-row" key={draft.id}>
+                <strong>{draft.name || "氏名未入力"}</strong>
+                <span>
+                  {draft.clinic_name || "医院名未入力"} ・ {draft.participant_type ? participantLabel(draft.participant_type) : "区分未選択"}
+                </span>
+                <small>
+                  回答数：{Number(draft.answered_count)}/{Number(draft.total_questions) || 36}
+                </small>
+                <small>保存日時：{formatDate(draft.updated_at)}</small>
+                <small>最終アクセス：{formatDate(draft.last_accessed_at)}</small>
+                <em className={draft.completed_at ? "completed" : ""}>{draft.completed_at ? "完了" : "未完了"}</em>
+              </article>
+            ))}
+          </div>
         </aside>
 
         <section className="admin-detail">

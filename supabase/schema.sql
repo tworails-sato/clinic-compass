@@ -132,6 +132,26 @@ create table if not exists public.clinic_assessment_type_results (
   updated_at timestamptz not null default now()
 );
 
+-- 途中保存。回答完了時はprofile/answersを空にして、管理用メタ情報だけ残します。
+create table if not exists public.clinic_assessment_drafts (
+  id uuid primary key default gen_random_uuid(),
+  draft_id uuid not null unique,
+  participant_type text check (participant_type in ('director', 'office_manager')),
+  name text,
+  email text,
+  clinic_name text,
+  profile jsonb not null default '{}'::jsonb,
+  answers jsonb not null default '{}'::jsonb,
+  answered_count integer not null default 0,
+  total_questions integer not null default 36,
+  status text not null default 'draft' check (status in ('draft', 'ready', 'completed')),
+  last_accessed_at timestamptz not null default now(),
+  completed_response_id uuid references public.clinic_assessment_responses(id) on delete set null,
+  completed_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists clinic_assessment_responses_submitted_at_idx
   on public.clinic_assessment_responses (submitted_at desc);
 create index if not exists clinic_assessment_responses_participant_type_idx
@@ -149,6 +169,10 @@ create index if not exists clinic_assessment_type_results_response_id_idx
   on public.clinic_assessment_type_results (response_id);
 create index if not exists clinic_assessment_type_results_type_idx
   on public.clinic_assessment_type_results (respondent_type, main_type_key);
+create index if not exists clinic_assessment_drafts_last_accessed_idx
+  on public.clinic_assessment_drafts (last_accessed_at desc);
+create index if not exists clinic_assessment_drafts_status_idx
+  on public.clinic_assessment_drafts (status, updated_at desc);
 
 -- updated_at を保つ共通トリガー
 create or replace function public.set_clinic_assessment_updated_at()
@@ -191,6 +215,11 @@ create trigger clinic_assessment_type_results_updated_at
 before update on public.clinic_assessment_type_results
 for each row execute function public.set_clinic_assessment_updated_at();
 
+drop trigger if exists clinic_assessment_drafts_updated_at on public.clinic_assessment_drafts;
+create trigger clinic_assessment_drafts_updated_at
+before update on public.clinic_assessment_drafts
+for each row execute function public.set_clinic_assessment_updated_at();
+
 -- RLS: 受検者の個人情報・結果をブラウザから直接読ませない設計です。
 -- 以後のアプリ実装では、サーバー側のRoute Handlerから service role key を使って操作します。
 -- service role はRLSをバイパスし、anon/authenticatedにはポリシーを作成しません。
@@ -201,6 +230,7 @@ alter table public.clinic_assessment_responses enable row level security;
 alter table public.clinic_assessment_response_answers enable row level security;
 alter table public.clinic_assessment_reports enable row level security;
 alter table public.clinic_assessment_type_results enable row level security;
+alter table public.clinic_assessment_drafts enable row level security;
 
 -- 初期設問セット（設問／テーマのINSERTは、lib/questions.ts の72問をDB化する段階で追加）
 insert into public.clinic_assessment_question_sets (code, participant_type, version, name)

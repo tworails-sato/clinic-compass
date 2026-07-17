@@ -14,14 +14,14 @@ export default function QuestionsPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const savedProfile = window.sessionStorage.getItem(storageKeys.profile);
+    const savedProfile = window.sessionStorage.getItem(storageKeys.profile) ?? window.localStorage.getItem(storageKeys.profile);
     if (!savedProfile) {
       router.replace("/start");
       return;
     }
 
     setProfile(JSON.parse(savedProfile));
-    const savedAnswers = window.sessionStorage.getItem(storageKeys.answers);
+    const savedAnswers = window.sessionStorage.getItem(storageKeys.answers) ?? window.localStorage.getItem(storageKeys.answers);
     if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
   }, [router]);
 
@@ -38,6 +38,10 @@ export default function QuestionsPage() {
     setAnswers(next);
     setError("");
     window.sessionStorage.setItem(storageKeys.answers, JSON.stringify(next));
+    window.localStorage.setItem(storageKeys.answers, JSON.stringify(next));
+    saveDraft(getOrCreateDraftId(), profile, next).catch((err) => {
+      console.error("[clinic-compass] Answer draft save failed", err);
+    });
   }
 
   async function submit() {
@@ -51,6 +55,7 @@ export default function QuestionsPage() {
     setSaving(true);
     setError("");
     window.sessionStorage.setItem(storageKeys.answers, JSON.stringify(answers));
+    window.localStorage.setItem(storageKeys.answers, JSON.stringify(answers));
 
     try {
       const response = await fetch("/api/assessments/complete", {
@@ -70,8 +75,12 @@ export default function QuestionsPage() {
 
       if (data.responseId) {
         window.sessionStorage.setItem(storageKeys.savedResponseId, data.responseId);
+        await completeDraft(getOrCreateDraftId(), data.responseId);
       }
 
+      window.localStorage.removeItem(storageKeys.profile);
+      window.localStorage.removeItem(storageKeys.answers);
+      window.localStorage.removeItem(storageKeys.draftId);
       router.push("/result");
     } catch (err) {
       console.error("[clinic-compass] Assessment completion request failed", err);
@@ -168,4 +177,31 @@ export default function QuestionsPage() {
       </main>
     </>
   );
+}
+
+function getOrCreateDraftId() {
+  const existing = window.localStorage.getItem(storageKeys.draftId) || window.sessionStorage.getItem(storageKeys.draftId);
+  if (existing) return existing;
+  const next = crypto.randomUUID();
+  window.localStorage.setItem(storageKeys.draftId, next);
+  window.sessionStorage.setItem(storageKeys.draftId, next);
+  return next;
+}
+
+async function saveDraft(draftId: string, profile: Profile, answers: Answers) {
+  await fetch("/api/assessments/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "save", draftId, profile, answers }),
+  });
+}
+
+async function completeDraft(draftId: string, responseId: string) {
+  await fetch("/api/assessments/draft", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "complete", draftId, responseId }),
+  }).catch((err) => {
+    console.error("[clinic-compass] Draft completion mark failed", err);
+  });
 }

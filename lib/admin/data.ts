@@ -53,10 +53,35 @@ export type AdminTypeResultRow = {
   calculated_at?: string;
 };
 
+export type AdminDraft = {
+  id: string;
+  draft_id: string;
+  participant_type?: "director" | "office_manager" | null;
+  name?: string | null;
+  email?: string | null;
+  clinic_name?: string | null;
+  answered_count: number | string;
+  total_questions: number | string;
+  status: "draft" | "ready" | "completed";
+  created_at: string;
+  updated_at: string;
+  last_accessed_at: string;
+  completed_at?: string | null;
+  completed_response_id?: string | null;
+};
+
 const responseSelect = "id,participant_type,name,email,clinic_name,total_score,theme_scores,priority_themes,submitted_at,basic_info";
+const draftSelect =
+  "id,draft_id,participant_type,name,email,clinic_name,answered_count,total_questions,status,created_at,updated_at,last_accessed_at,completed_at,completed_response_id";
 
 export async function listResponses(): Promise<AdminResponse[]> {
   return supabaseAdminFetch(`/rest/v1/clinic_assessment_responses?deleted_at=is.null&select=${responseSelect}&order=submitted_at.desc`) as Promise<AdminResponse[]>;
+}
+
+export async function listDrafts(): Promise<AdminDraft[]> {
+  return supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_drafts?select=${draftSelect}&order=last_accessed_at.desc&limit=50`,
+  ) as Promise<AdminDraft[]>;
 }
 
 export async function getResponse(responseId: string): Promise<AdminResponse | null> {
