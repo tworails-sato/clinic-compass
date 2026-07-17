@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { SiteHeader } from "@/components/SiteHeader";
+import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 import type { ThemeComparison } from "@/lib/score-comparison";
+import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
 const feedbackUrl = process.env.NEXT_PUBLIC_TIMEREX_URL || process.env.NEXT_PUBLIC_FEEDBACK_URL || "https://timerex.net/s/sato.motoki_765a/c6616a1a/";
 
@@ -42,6 +44,10 @@ export default function ResultPage() {
   const grouped = useMemo(() => getGroupedScores(profile, answers), [profile, answers]);
   const total = getTotalScore(grouped);
   const priorities = getPriorities(grouped);
+  const typeDiagnosis = useMemo(
+    () => (profile.type ? calculateTypeDiagnosis(profile.type, answers, total) : null),
+    [profile.type, answers, total],
+  );
   const averageScores = useMemo(
     () =>
       averageComparison?.comparisons
@@ -107,6 +113,7 @@ export default function ResultPage() {
             <h2>医院の現状を、地図のように俯瞰する</h2>
             <p>この結果は優劣を決めるものではありません。具体的な状況を確認し、次の行動を考えるための入り口です。</p>
           </section>
+          <TypeDiagnosisResult result={typeDiagnosis} />
           <div className="result-grid">
             <section className="result-card chart-card">
               <div className="card-heading">

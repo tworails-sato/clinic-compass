@@ -10,6 +10,7 @@ import {
 } from "@/lib/assessment";
 import { sendCompletionEmails } from "@/lib/email/resend";
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
+import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
 function questionSetCode(type: Profile["type"]) {
   return type === "director" ? "director-v1" : "office-manager-v1";
@@ -100,6 +101,39 @@ export async function POST(request: Request) {
       ),
     });
 
+    const typeDiagnosis = calculateTypeDiagnosis(profile.type, answers, total);
+    if (typeDiagnosis) {
+      try {
+        await supabaseAdminFetch("/rest/v1/clinic_assessment_type_results?on_conflict=response_id", {
+          method: "POST",
+          headers: {
+            Prefer: "resolution=merge-duplicates,return=minimal",
+          },
+          body: JSON.stringify({
+            response_id: response.id,
+            respondent_type: typeDiagnosis.respondentType,
+            feature_scores: typeDiagnosis.featureScores,
+            auxiliary_scores: typeDiagnosis.auxiliaryScores,
+            main_type_key: typeDiagnosis.mainTypeKey,
+            main_type_label: typeDiagnosis.mainTypeLabel,
+            sub_type_key: typeDiagnosis.subTypeKey,
+            sub_type_label: typeDiagnosis.subTypeLabel,
+            main_type_distance: typeDiagnosis.mainTypeDistance,
+            sub_type_distance: typeDiagnosis.subTypeDistance,
+            type_distances: typeDiagnosis.typeDistances,
+            excluded_candidate_reasons: typeDiagnosis.excludedCandidateReasons,
+            maturity_key: typeDiagnosis.maturityKey,
+            maturity_label: typeDiagnosis.maturityLabel,
+            type_judgement_status: typeDiagnosis.typeJudgementStatus,
+            type_logic_version: typeDiagnosis.typeLogicVersion,
+            calculated_at: typeDiagnosis.calculatedAt,
+          }),
+        });
+      } catch (error) {
+        console.error("[clinic-compass] Type diagnosis save failed", error);
+      }
+    }
+
     const mailResult = await sendCompletionEmails({
       profile,
       responseId: response.id,
@@ -131,6 +165,7 @@ export async function POST(request: Request) {
       ok: true,
       responseId: response.id,
       resultToken: response.result_token,
+      typeDiagnosis,
       themeScores,
       priorities,
     });

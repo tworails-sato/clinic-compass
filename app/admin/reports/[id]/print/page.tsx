@@ -3,12 +3,14 @@ import { notFound } from "next/navigation";
 import { AverageComparison } from "@/components/AverageComparison";
 import { PrintButton } from "@/components/PrintButton";
 import { Radar } from "@/components/Radar";
+import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
 import {
   formatDate,
   getAnswers,
   getAverageComparisonForResponse,
   getReport,
   getResponse,
+  getTypeResult,
   normalizePriorities,
   normalizeScores,
   participantLabel,
@@ -25,6 +27,7 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
 
   const answers = await getAnswers(id);
   const report = await getReport(id);
+  const typeDiagnosis = await getTypeResult(id);
   const chartScores = normalizeScores(response.theme_scores);
   const priorities = normalizePriorities(response.priority_themes);
   const averageComparison = await getAverageComparisonForResponse(response, chartScores);
@@ -58,6 +61,8 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
             <b className="theme-name">{priorities.join(" ／ ") || "未設定"}</b>
           </div>
         </div>
+
+        <TypeDiagnosisResult result={typeDiagnosis} />
 
         <section className="print-section">
           <h2>テーマ別スコア</h2>

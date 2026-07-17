@@ -108,6 +108,30 @@ create table if not exists public.clinic_assessment_reports (
 alter table public.clinic_assessment_reports
   add column if not exists strengths_comment text;
 
+-- 12タイプ診断結果。36問の回答から算出したタイプ判定を、既存結果とは分けて保存します。
+create table if not exists public.clinic_assessment_type_results (
+  id uuid primary key default gen_random_uuid(),
+  response_id uuid not null unique references public.clinic_assessment_responses(id) on delete cascade,
+  respondent_type text not null check (respondent_type in ('doctor', 'manager')),
+  feature_scores jsonb not null default '{}'::jsonb,
+  auxiliary_scores jsonb not null default '{}'::jsonb,
+  main_type_key text not null,
+  main_type_label text not null,
+  sub_type_key text,
+  sub_type_label text,
+  main_type_distance numeric(8,3),
+  sub_type_distance numeric(8,3),
+  type_distances jsonb not null default '[]'::jsonb,
+  excluded_candidate_reasons jsonb not null default '[]'::jsonb,
+  maturity_key text,
+  maturity_label text,
+  type_judgement_status text not null default 'standard',
+  type_logic_version text not null,
+  calculated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create index if not exists clinic_assessment_responses_submitted_at_idx
   on public.clinic_assessment_responses (submitted_at desc);
 create index if not exists clinic_assessment_responses_participant_type_idx
@@ -121,6 +145,10 @@ create index if not exists clinic_assessment_response_answers_response_id_idx
   on public.clinic_assessment_response_answers (response_id);
 create index if not exists clinic_assessment_questions_question_set_id_idx
   on public.clinic_assessment_questions (question_set_id, display_order);
+create index if not exists clinic_assessment_type_results_response_id_idx
+  on public.clinic_assessment_type_results (response_id);
+create index if not exists clinic_assessment_type_results_type_idx
+  on public.clinic_assessment_type_results (respondent_type, main_type_key);
 
 -- updated_at を保つ共通トリガー
 create or replace function public.set_clinic_assessment_updated_at()
@@ -158,6 +186,11 @@ create trigger clinic_assessment_reports_updated_at
 before update on public.clinic_assessment_reports
 for each row execute function public.set_clinic_assessment_updated_at();
 
+drop trigger if exists clinic_assessment_type_results_updated_at on public.clinic_assessment_type_results;
+create trigger clinic_assessment_type_results_updated_at
+before update on public.clinic_assessment_type_results
+for each row execute function public.set_clinic_assessment_updated_at();
+
 -- RLS: 受検者の個人情報・結果をブラウザから直接読ませない設計です。
 -- 以後のアプリ実装では、サーバー側のRoute Handlerから service role key を使って操作します。
 -- service role はRLSをバイパスし、anon/authenticatedにはポリシーを作成しません。
@@ -167,6 +200,7 @@ alter table public.clinic_assessment_questions enable row level security;
 alter table public.clinic_assessment_responses enable row level security;
 alter table public.clinic_assessment_response_answers enable row level security;
 alter table public.clinic_assessment_reports enable row level security;
+alter table public.clinic_assessment_type_results enable row level security;
 
 -- 初期設問セット（設問／テーマのINSERTは、lib/questions.ts の72問をDB化する段階で追加）
 insert into public.clinic_assessment_question_sets (code, participant_type, version, name)

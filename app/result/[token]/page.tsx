@@ -2,7 +2,8 @@ import Link from "next/link";
 import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { SiteHeader } from "@/components/SiteHeader";
-import { getAverageComparisonForResponse, normalizePriorities, normalizeScores } from "@/lib/admin/data";
+import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
+import { getAverageComparisonForResponse, getTypeResult, normalizePriorities, normalizeScores } from "@/lib/admin/data";
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +84,7 @@ export default async function PublicResultPage({ params }: { params: Promise<{ t
   const grouped = normalizeScores(response.theme_scores);
   const priorities = normalizePriorities(response.priority_themes);
   const averageComparison = await getAverageComparisonForResponse(response, grouped);
+  const typeDiagnosis = await getTypeResult(response.id);
   const averageScores = averageComparison.comparisons
     .filter((comparison) => comparison.averageScore !== null)
     .map((comparison) => ({ name: comparison.name, score: comparison.averageScore ?? 0, children: [] }));
@@ -114,6 +116,7 @@ export default async function PublicResultPage({ params }: { params: Promise<{ t
               この結果は、回答内容をもとに医院経営のテーマ別傾向を整理したものです。スコアだけで良し悪しを判断するのではなく、具体的なアクションを考える入口としてご確認ください。
             </p>
           </section>
+          <TypeDiagnosisResult result={typeDiagnosis} />
 
           <div className="result-grid">
             <section className="result-card chart-card">

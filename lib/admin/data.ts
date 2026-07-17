@@ -1,6 +1,7 @@
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
 import { GroupScore } from "@/lib/assessment";
 import { buildAverageComparison, type AverageComparisonResult } from "@/lib/score-comparison";
+import { normalizeTypeDiagnosisResult, type TypeDiagnosisResultData } from "@/lib/type-diagnosis/engine";
 
 export type AdminResponse = {
   id: string;
@@ -32,6 +33,26 @@ export type AdminReport = {
   internal_notes?: string;
 };
 
+export type AdminTypeResultRow = {
+  response_id: string;
+  respondent_type: string;
+  feature_scores: unknown;
+  auxiliary_scores: unknown;
+  main_type_key: string;
+  main_type_label?: string;
+  sub_type_key?: string | null;
+  sub_type_label?: string | null;
+  main_type_distance?: number | string | null;
+  sub_type_distance?: number | string | null;
+  type_distances?: unknown;
+  excluded_candidate_reasons?: unknown;
+  maturity_key?: string | null;
+  maturity_label?: string | null;
+  type_judgement_status?: string;
+  type_logic_version?: string;
+  calculated_at?: string;
+};
+
 const responseSelect = "id,participant_type,name,email,clinic_name,total_score,theme_scores,priority_themes,submitted_at,basic_info";
 
 export async function listResponses(): Promise<AdminResponse[]> {
@@ -56,6 +77,13 @@ export async function getReport(responseId: string): Promise<AdminReport | null>
     `/rest/v1/clinic_assessment_reports?response_id=eq.${encodeURIComponent(responseId)}&select=response_id,overall_comment,strengths_comment,priority_comment,next_actions,internal_notes&limit=1`,
   )) as AdminReport[];
   return rows[0] ?? null;
+}
+
+export async function getTypeResult(responseId: string): Promise<TypeDiagnosisResultData | null> {
+  const rows = (await supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_type_results?response_id=eq.${encodeURIComponent(responseId)}&select=*&limit=1`,
+  )) as AdminTypeResultRow[];
+  return normalizeTypeDiagnosisResult(rows[0] ?? null);
 }
 
 export async function getAverageComparisonForResponse(

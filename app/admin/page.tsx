@@ -4,6 +4,7 @@ import { AdminDeleteForm } from "@/components/AdminDeleteForm";
 import { AdminReportEditor } from "@/components/AdminReportEditor";
 import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
+import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
 import { generateReportDraft } from "@/lib/admin/comment-drafts";
 import {
   formatDate,
@@ -11,6 +12,7 @@ import {
   getAnswers,
   getAverageComparisonForResponse,
   getReport,
+  getTypeResult,
   listResponses,
   normalizePriorities,
   normalizeScores,
@@ -46,6 +48,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   const selected = responses.find((row) => row.id === params?.id) ?? responses[0];
   const answers = selected ? await getAnswers(selected.id) : [];
   const report = selected ? await getReport(selected.id) : null;
+  const typeDiagnosis = selected ? await getTypeResult(selected.id) : null;
   const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
   const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
   const averageComparison = selected ? await getAverageComparisonForResponse(selected, chartScores) : null;
@@ -111,6 +114,8 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                   <b className="theme-name">{priorities.join(" ・ ") || "未設定"}</b>
                 </div>
               </div>
+
+              <TypeDiagnosisResult result={typeDiagnosis} />
 
               <div className="admin-result-grid">
                 <section className="result-card">

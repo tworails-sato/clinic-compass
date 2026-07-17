@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/admin/session";
-import { formatDate, listResponses, normalizePriorities, participantLabel } from "@/lib/admin/data";
+import { formatDate, getTypeResult, listResponses, normalizePriorities, participantLabel } from "@/lib/admin/data";
 
 function escapeCsv(value: unknown) {
   const text = String(value ?? "");
@@ -12,17 +12,24 @@ export async function GET() {
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
   const rows = await listResponses();
-  const header = ["回答ID", "回答日時", "医院名", "氏名", "メール", "対象者区分", "総合スコア", "優先確認テーマ"];
-  const body = rows.map((row) => [
-    row.id,
-    formatDate(row.submitted_at),
-    row.clinic_name,
-    row.name,
-    row.email,
-    participantLabel(row.participant_type),
-    Number(row.total_score).toFixed(1),
-    normalizePriorities(row.priority_themes).join(" / "),
-  ]);
+  const typeResults = await Promise.all(rows.map((row) => getTypeResult(row.id)));
+  const header = ["回答ID", "回答日時", "医院名", "氏名", "メール", "対象者区分", "総合スコア", "優先確認テーマ", "12タイプ", "サブタイプ候補", "成熟度"];
+  const body = rows.map((row, index) => {
+    const typeResult = typeResults[index];
+    return [
+      row.id,
+      formatDate(row.submitted_at),
+      row.clinic_name,
+      row.name,
+      row.email,
+      participantLabel(row.participant_type),
+      Number(row.total_score).toFixed(1),
+      normalizePriorities(row.priority_themes).join(" / "),
+      typeResult?.mainTypeLabel ?? "",
+      typeResult?.subTypeLabel ?? "",
+      typeResult?.maturityLabel ?? "",
+    ];
+  });
 
   const csv = [header, ...body].map((line) => line.map(escapeCsv).join(",")).join("\n");
   return new NextResponse(`\uFEFF${csv}`, {
