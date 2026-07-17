@@ -113,7 +113,7 @@ export default function ResultPage() {
             <h2>医院の現状を、地図のように俯瞰する</h2>
             <p>この結果は優劣を決めるものではありません。具体的な状況を確認し、次の行動を考えるための入り口です。</p>
           </section>
-          <TypeDiagnosisResult result={typeDiagnosis} />
+          <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} />
           <div className="result-grid">
             <section className="result-card chart-card">
               <div className="card-heading">
