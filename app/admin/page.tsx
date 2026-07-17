@@ -6,6 +6,7 @@ import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
 import { generateReportDraft } from "@/lib/admin/comment-drafts";
+import type { Answers } from "@/lib/assessment";
 import {
   formatDate,
   formatReferralMemo,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
 import { hasSupabaseEnv } from "@/lib/supabase/rest";
+import { calculateTypeDiagnosis, getTypeDefinition, type TypeDiagnosisResultData } from "@/lib/type-diagnosis/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -47,12 +49,20 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
 
   const responses = await listResponses();
   const drafts = await listDrafts();
-  const responseTypeResults = await Promise.all(responses.map((row) => getTypeResult(row.id)));
+  const responseTypeResults = await Promise.all(
+    responses.map(async (row) => {
+      const saved = await getTypeResult(row.id);
+      if (saved) return saved;
+      const rowAnswers = await getAnswers(row.id);
+      return calculateTypeDiagnosis(row.participant_type, answersToRecord(rowAnswers), Number(row.total_score));
+    }),
+  );
   const typeResultByResponseId = new Map(responses.map((row, index) => [row.id, responseTypeResults[index]]));
   const selected = responses.find((row) => row.id === params?.id) ?? responses[0];
   const answers = selected ? await getAnswers(selected.id) : [];
   const report = selected ? await getReport(selected.id) : null;
-  const typeDiagnosis = selected ? await getTypeResult(selected.id) : null;
+  const savedTypeDiagnosis = selected ? await getTypeResult(selected.id) : null;
+  const typeDiagnosis = selected ? savedTypeDiagnosis ?? calculateTypeDiagnosis(selected.participant_type, answersToRecord(answers), Number(selected.total_score)) : null;
   const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
   const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
   const averageComparison = selected ? await getAverageComparisonForResponse(selected, chartScores) : null;
@@ -86,14 +96,12 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           {params?.deleted && <div className="saved block">削除しました</div>}
           {responses.length === 0 && <p className="admin-empty-small">まだ回答データがありません。</p>}
           {responses.map((item) => (
-            <Link className={`response-row ${selected?.id === item.id ? "selected" : ""}`} key={item.id} href={`/admin?id=${item.id}`}>
-              <strong>{item.name}</strong>
-              <span>
-                {item.clinic_name} ・ {participantLabel(item.participant_type)}
-              </span>
-              {typeResultByResponseId.get(item.id)?.mainTypeLabel && <span>12タイプ：{typeResultByResponseId.get(item.id)?.mainTypeLabel}</span>}
-              <small>{formatDate(item.submitted_at)}</small>
-            </Link>
+            <ResponseListRow
+              item={item}
+              key={item.id}
+              selected={selected?.id === item.id}
+              typeResult={typeResultByResponseId.get(item.id) ?? null}
+            />
           ))}
           <div className="admin-draft-list">
             <p>DRAFTS</p>
@@ -192,5 +200,46 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         </section>
       </div>
     </main>
+  );
+}
+
+function answersToRecord(answers: Array<{ question_number: number; score: number }>): Answers {
+  return Object.fromEntries(answers.map((answer) => [answer.question_number, Number(answer.score)]));
+}
+
+function ResponseListRow({
+  item,
+  selected,
+  typeResult,
+}: {
+  item: Awaited<ReturnType<typeof listResponses>>[number];
+  selected: boolean;
+  typeResult: TypeDiagnosisResultData | null;
+}) {
+  const definition = typeResult ? getTypeDefinition(typeResult.respondentType, typeResult.mainTypeKey) : null;
+
+  return (
+    <Link className={`response-row ${selected ? "selected" : ""}`} href={`/admin?id=${item.id}`}>
+      <strong>{item.name}</strong>
+      <span>
+        {item.clinic_name} ・ {participantLabel(item.participant_type)}
+      </span>
+      {typeResult ? (
+        <div className="admin-type-list-summary">
+          {definition?.iconPath ? <img src={definition.iconPath} alt="" /> : <i>🧭</i>}
+          <div>
+            <b>{typeResult.mainTypeLabel}</b>
+            <span>サブ：{typeResult.subTypeLabel ?? "未判定"}</span>
+            <small>
+              {typeResult.typeJudgementStatus} ／ {typeResult.maturityLabel ?? "成熟度未判定"}
+              {typeResult.calculatedAt ? ` ／ ${formatDate(typeResult.calculatedAt)}` : ""}
+            </small>
+          </div>
+        </div>
+      ) : (
+        <span>12タイプ：未判定</span>
+      )}
+      <small>{formatDate(item.submitted_at)}</small>
+    </Link>
   );
 }
