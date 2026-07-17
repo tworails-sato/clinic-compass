@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="オウム">
+  <circle cx="60" cy="60" r="56" fill="#eef8f6"/>
+  <path d="M42 25c25 2 43 17 43 42 0 23-16 36-34 36-13 0-23-8-23-22 0-17 15-23 28-24-9-7-15-16-14-32z" fill="#3cb7a8" stroke="#163541" stroke-width="4"/>
+  <path d="M72 55 101 64 72 74z" fill="#f6b558" stroke="#163541" stroke-width="4"/>
+  <circle cx="68" cy="48" r="5" fill="#fff"/><circle cx="69" cy="48" r="2" fill="#163541"/>
+</svg>

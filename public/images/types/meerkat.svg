@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="ミーアキャット">
+  <circle cx="60" cy="60" r="56" fill="#fff8eb"/>
+  <rect x="40" y="27" width="40" height="72" rx="20" fill="#c7975a" stroke="#163541" stroke-width="4"/>
+  <circle cx="46" cy="31" r="8" fill="#c7975a" stroke="#163541" stroke-width="4"/>
+  <circle cx="74" cy="31" r="8" fill="#c7975a" stroke="#163541" stroke-width="4"/>
+  <circle cx="52" cy="52" r="4" fill="#163541"/><circle cx="68" cy="52" r="4" fill="#163541"/>
+  <path d="M51 70h18" stroke="#163541" stroke-width="4" stroke-linecap="round"/>
+</svg>

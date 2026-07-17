@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   getTypeDefinition,
   getTypeDiagnosisConfig,
@@ -30,6 +33,8 @@ const animalIcons: Record<string, string> = {
 };
 
 export function TypeDiagnosisResult({ result, compact = false }: Props) {
+  const [iconFailed, setIconFailed] = useState(false);
+
   if (!result) return null;
 
   const config = getTypeDiagnosisConfig(result.respondentType);
@@ -47,6 +52,7 @@ export function TypeDiagnosisResult({ result, compact = false }: Props) {
   }));
   const animal = definition?.animal ?? "";
   const icon = animalIcons[animal] ?? "🧭";
+  const iconPath = definition?.iconPath;
 
   return (
     <section className={`type-diagnosis-card ${compact ? "compact" : ""}`}>
@@ -55,7 +61,11 @@ export function TypeDiagnosisResult({ result, compact = false }: Props) {
           <p className="eyebrow teal">{config.title}</p>
           <h2>
             <span className="type-animal-icon" aria-hidden="true">
-              {icon}
+              {iconPath && !iconFailed ? (
+                <img src={iconPath} alt="" onError={() => setIconFailed(true)} />
+              ) : (
+                icon
+              )}
             </span>
             {result.mainTypeLabel}
           </h2>
@@ -85,7 +95,8 @@ export function TypeDiagnosisResult({ result, compact = false }: Props) {
         <article>
           <small>動物アイコン</small>
           <strong>
-            {icon} {animal || subDefinition?.animal || "未設定"}
+            {iconPath && !iconFailed ? <img className="type-inline-icon" src={iconPath} alt="" onError={() => setIconFailed(true)} /> : icon}{" "}
+            {animal || subDefinition?.animal || "未設定"}
           </strong>
         </article>
         <article>

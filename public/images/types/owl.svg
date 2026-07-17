@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="フクロウ">
+  <circle cx="60" cy="60" r="56" fill="#eef8f6"/>
+  <path d="M34 33h52v39c0 19-12 31-26 31S34 91 34 72z" fill="#7bcfc4" stroke="#163541" stroke-width="4"/>
+  <circle cx="48" cy="58" r="12" fill="#fff"/><circle cx="72" cy="58" r="12" fill="#fff"/>
+  <circle cx="48" cy="58" r="5" fill="#163541"/><circle cx="72" cy="58" r="5" fill="#163541"/>
+  <path d="M55 72h10l-5 8z" fill="#f6b558"/>
+</svg>

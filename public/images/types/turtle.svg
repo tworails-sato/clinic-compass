@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="カメ">
+  <circle cx="60" cy="60" r="56" fill="#eef8f6"/>
+  <ellipse cx="60" cy="66" rx="36" ry="28" fill="#6fb08a" stroke="#163541" stroke-width="4"/>
+  <circle cx="60" cy="38" r="14" fill="#9fd2ad" stroke="#163541" stroke-width="4"/>
+  <path d="M37 61h46M48 42v44M72 42v44" stroke="#163541" stroke-width="3" opacity=".45"/>
+  <circle cx="55" cy="36" r="3" fill="#163541"/><circle cx="65" cy="36" r="3" fill="#163541"/>
+</svg>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="イルカ">
+  <circle cx="60" cy="60" r="56" fill="#eef8f6"/>
+  <path d="M23 72c24-31 51-38 82-19-21 4-33 13-43 28-16-7-27-9-39-9z" fill="#42a6c6" stroke="#163541" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M56 50 48 28 72 44z" fill="#42a6c6" stroke="#163541" stroke-width="4"/>
+  <circle cx="80" cy="55" r="4" fill="#fff"/>
+</svg>

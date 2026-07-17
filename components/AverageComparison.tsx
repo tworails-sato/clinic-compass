@@ -1,6 +1,6 @@
 import type { ThemeComparison } from "@/lib/score-comparison";
 
-export function AverageComparison({ comparisons, count }: { comparisons: ThemeComparison[]; count: number }) {
+export function AverageComparison({ comparisons }: { comparisons: ThemeComparison[]; count: number }) {
   if (!comparisons.length) return null;
 
   const relativeStrengths = comparisons.filter((comparison) => comparison.label === "平均より高い");
@@ -16,7 +16,6 @@ export function AverageComparison({ comparisons, count }: { comparisons: ThemeCo
           <p className="eyebrow teal">REFERENCE AVERAGE</p>
           <h2>過去受検者平均との差分</h2>
         </div>
-        <span>比較対象：過去受検者 {count}件</span>
       </div>
       <p className="average-note">
         過去受検者平均は、現時点の回答データをもとにした参考値です。

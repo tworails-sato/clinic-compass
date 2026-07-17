@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="ビーバー">
+  <circle cx="60" cy="60" r="56" fill="#fff8eb"/>
+  <rect x="31" y="32" width="58" height="56" rx="24" fill="#9a6b42" stroke="#163541" stroke-width="4"/>
+  <path d="M50 79h20v15H50z" fill="#fff" stroke="#163541" stroke-width="3"/>
+  <circle cx="50" cy="56" r="4" fill="#163541"/><circle cx="70" cy="56" r="4" fill="#163541"/>
+  <path d="M60 63v11" stroke="#163541" stroke-width="4" stroke-linecap="round"/>
+</svg>

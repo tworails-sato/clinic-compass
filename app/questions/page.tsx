@@ -12,6 +12,8 @@ export default function QuestionsPage() {
   const [answers, setAnswers] = useState<Answers>({});
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [draftMessage, setDraftMessage] = useState("");
 
   useEffect(() => {
     const savedProfile = window.sessionStorage.getItem(storageKeys.profile) ?? window.localStorage.getItem(storageKeys.profile);
@@ -42,6 +44,27 @@ export default function QuestionsPage() {
     saveDraft(getOrCreateDraftId(), profile, next).catch((err) => {
       console.error("[clinic-compass] Answer draft save failed", err);
     });
+  }
+
+  async function saveDraftManually() {
+    setDraftSaving(true);
+    setDraftMessage("");
+    setError("");
+    window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(profile));
+    window.localStorage.setItem(storageKeys.profile, JSON.stringify(profile));
+    window.sessionStorage.setItem(storageKeys.answers, JSON.stringify(answers));
+    window.localStorage.setItem(storageKeys.answers, JSON.stringify(answers));
+
+    try {
+      await saveDraft(getOrCreateDraftId(), profile, answers);
+      setDraftMessage("途中保存しました");
+      window.setTimeout(() => setDraftMessage(""), 3000);
+    } catch (err) {
+      console.error("[clinic-compass] Manual draft save failed", err);
+      setError("途中保存に失敗しました。通信環境を確認し、再度お試しください。");
+    } finally {
+      setDraftSaving(false);
+    }
   }
 
   async function submit() {
@@ -124,9 +147,15 @@ export default function QuestionsPage() {
             <div className="progress">
               <i style={{ width: `${(answered / questions.length) * 100}%` }} />
             </div>
-            <button className="button compact" onClick={submit} disabled={saving}>
-              {saving ? "保存中..." : "結果を見る"}
-            </button>
+            <div className="sticky-actions">
+              {draftMessage && <span className="draft-save-message">{draftMessage}</span>}
+              <button className="button compact draft-save-button" onClick={saveDraftManually} disabled={saving || draftSaving} type="button">
+                {draftSaving ? "保存中..." : "途中保存する"}
+              </button>
+              <button className="button compact" onClick={submit} disabled={saving || draftSaving} type="button">
+                {saving ? "保存中..." : "結果を見る"}
+              </button>
+            </div>
           </div>
 
           {error && <div className="alert">{error}</div>}

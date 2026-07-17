@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="ハヤブサ">
+  <circle cx="60" cy="60" r="56" fill="#eef8f6"/>
+  <path d="M20 66c26-36 54-39 82-19-26 2-40 15-48 38-7-8-17-14-34-19z" fill="#5f7379" stroke="#163541" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M58 45 95 31 77 55z" fill="#f6b558" stroke="#163541" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="67" cy="47" r="4" fill="#fff"/>
+</svg>

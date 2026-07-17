@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="オオカミ">
+  <circle cx="60" cy="60" r="56" fill="#eef8f6"/>
+  <path d="M28 45 43 22l14 22h6l14-22 15 23-8 34-24 18-24-18z" fill="#5f7379" stroke="#163541" stroke-width="4" stroke-linejoin="round"/>
+  <circle cx="47" cy="58" r="4" fill="#fff"/><circle cx="73" cy="58" r="4" fill="#fff"/>
+  <path d="M52 76h16l-8 7z" fill="#163541"/>
+</svg>
