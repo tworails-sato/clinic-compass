@@ -4,6 +4,7 @@ import { AverageComparison } from "@/components/AverageComparison";
 import { PrintButton } from "@/components/PrintButton";
 import { Radar } from "@/components/Radar";
 import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
+import type { Answers } from "@/lib/assessment";
 import {
   formatDate,
   getAnswers,
@@ -16,6 +17,7 @@ import {
   participantLabel,
 } from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
+import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +29,8 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
 
   const answers = await getAnswers(id);
   const report = await getReport(id);
-  const typeDiagnosis = await getTypeResult(id);
+  const savedTypeDiagnosis = await getTypeResult(id);
+  const typeDiagnosis = savedTypeDiagnosis ?? calculateTypeDiagnosis(response.participant_type, answersToRecord(answers), Number(response.total_score));
   const chartScores = normalizeScores(response.theme_scores);
   const priorities = normalizePriorities(response.priority_themes);
   const averageComparison = await getAverageComparisonForResponse(response, chartScores);
@@ -62,7 +65,7 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        <TypeDiagnosisResult result={typeDiagnosis} />
+        <TypeDiagnosisResult result={typeDiagnosis} showStatusAndMaturity={false} showCalculatedAt />
 
         <section className="print-section">
           <h2>テーマ別スコア</h2>
@@ -111,4 +114,8 @@ export default async function ReportPrintPage({ params }: { params: Promise<{ id
       </section>
     </main>
   );
+}
+
+function answersToRecord(answers: Array<{ question_number: number; score: number }>): Answers {
+  return Object.fromEntries(answers.map((answer) => [answer.question_number, Number(answer.score)]));
 }

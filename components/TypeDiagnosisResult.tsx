@@ -11,6 +11,8 @@ type Props = {
   result: TypeDiagnosisResultData | null;
   compact?: boolean;
   showMeta?: boolean;
+  showStatusAndMaturity?: boolean;
+  showCalculatedAt?: boolean;
 };
 
 const animalIcons: Record<string, string> = {
@@ -33,7 +35,13 @@ const animalIcons: Record<string, string> = {
   クロヒョウ: "🐆",
 };
 
-export function TypeDiagnosisResult({ result, compact = false, showMeta = true }: Props) {
+export function TypeDiagnosisResult({
+  result,
+  compact = false,
+  showMeta = true,
+  showStatusAndMaturity = showMeta,
+  showCalculatedAt = showMeta,
+}: Props) {
   const [iconFailed, setIconFailed] = useState(false);
 
   if (!result) return null;
@@ -72,7 +80,7 @@ export function TypeDiagnosisResult({ result, compact = false, showMeta = true }
           </h2>
           <p>{definition?.summary ?? "回答傾向から医院経営スタイルを整理した参考タイプです。"}</p>
         </div>
-        {showMeta && result.maturityLabel && (
+        {showStatusAndMaturity && result.maturityLabel && (
           <span>
             成熟度
             <b>{result.maturityLabel}</b>
@@ -80,7 +88,7 @@ export function TypeDiagnosisResult({ result, compact = false, showMeta = true }
         )}
       </div>
 
-      {showMeta && result.typeJudgementStatus === "reference" && (
+      {showStatusAndMaturity && result.typeJudgementStatus === "reference" && (
         <p className="type-note">条件に完全一致するタイプがないため、今回は回答傾向に最も近いタイプを参考表示しています。</p>
       )}
 
@@ -100,20 +108,26 @@ export function TypeDiagnosisResult({ result, compact = false, showMeta = true }
             {animal || subDefinition?.animal || "未設定"}
           </strong>
         </article>
-        {showMeta && (
+        {(showStatusAndMaturity || showCalculatedAt) && (
           <>
-            <article>
-              <small>判定ステータス</small>
-              <strong>{result.typeJudgementStatus}</strong>
-            </article>
-            <article>
-              <small>成熟度</small>
-              <strong>{result.maturityLabel ?? "未判定"}</strong>
-            </article>
-            <article>
-              <small>判定日時</small>
-              <strong>{result.calculatedAt ? formatDate(result.calculatedAt) : "未記録"}</strong>
-            </article>
+            {showStatusAndMaturity && (
+              <>
+                <article>
+                  <small>判定ステータス</small>
+                  <strong>{result.typeJudgementStatus}</strong>
+                </article>
+                <article>
+                  <small>成熟度</small>
+                  <strong>{result.maturityLabel ?? "未判定"}</strong>
+                </article>
+              </>
+            )}
+            {showCalculatedAt && (
+              <article>
+                <small>判定日時</small>
+                <strong>{result.calculatedAt ? formatDate(result.calculatedAt) : "未記録"}</strong>
+              </article>
+            )}
           </>
         )}
       </div>

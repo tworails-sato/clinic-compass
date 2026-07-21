@@ -29,8 +29,6 @@ export async function GET() {
     "アイコンパス",
     "6特性スコア",
     "補助指標",
-    "判定ステータス",
-    "成熟度",
     "判定日時",
   ];
   const body = rows.map((row, index) => {
@@ -51,8 +49,6 @@ export async function GET() {
       definition?.iconPath ?? "",
       formatScoreRecord(typeResult?.featureScores),
       formatScoreRecord(typeResult?.auxiliaryScores),
-      typeResult?.typeJudgementStatus ?? "",
-      typeResult?.maturityLabel ?? "",
       typeResult?.calculatedAt ? formatDate(typeResult.calculatedAt) : "",
     ];
   });

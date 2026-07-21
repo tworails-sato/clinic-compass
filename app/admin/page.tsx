@@ -147,7 +147,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                 </div>
               </div>
 
-              <TypeDiagnosisResult result={typeDiagnosis} />
+              <TypeDiagnosisResult result={typeDiagnosis} showStatusAndMaturity={false} showCalculatedAt />
 
               <div className="admin-result-grid">
                 <section className="result-card">
@@ -230,10 +230,7 @@ function ResponseListRow({
           <div>
             <b>{typeResult.mainTypeLabel}</b>
             <span>サブ：{typeResult.subTypeLabel ?? "未判定"}</span>
-            <small>
-              {typeResult.typeJudgementStatus} ／ {typeResult.maturityLabel ?? "成熟度未判定"}
-              {typeResult.calculatedAt ? ` ／ ${formatDate(typeResult.calculatedAt)}` : ""}
-            </small>
+            {typeResult.calculatedAt && <small>判定日時：{formatDate(typeResult.calculatedAt)}</small>}
           </div>
         </div>
       ) : (
