@@ -23,7 +23,11 @@ type PublicResponse = {
 };
 
 function timerexUrl() {
-  return process.env.NEXT_PUBLIC_TIMEREX_URL || process.env.NEXT_PUBLIC_FEEDBACK_URL || "";
+  return (
+    process.env.NEXT_PUBLIC_FEEDBACK_URL ||
+    process.env.NEXT_PUBLIC_TIMEREX_URL ||
+    "https://app.spirinc.com/t/jjbpl6BvWT0_8ErSb6ZJI/as/kJSSa_PKI5d9jCQGSKjA7/confirm"
+  );
 }
 
 function participantLabel(type: PublicResponse["participant_type"]) {

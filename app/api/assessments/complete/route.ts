@@ -20,6 +20,16 @@ function appBaseUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL || "https://clinic.ceo-sherpa.com").replace(/\/$/, "");
 }
 
+function feedbackUrl() {
+  return (
+    process.env.FEEDBACK_URL ||
+    process.env.TIMEREX_URL ||
+    process.env.NEXT_PUBLIC_FEEDBACK_URL ||
+    process.env.NEXT_PUBLIC_TIMEREX_URL ||
+    "https://app.spirinc.com/t/jjbpl6BvWT0_8ErSb6ZJI/as/kJSSa_PKI5d9jCQGSKjA7/confirm"
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { profile?: Profile; answers?: Answers };
@@ -71,7 +81,7 @@ export async function POST(request: Request) {
         result_comment: "",
         cta: {
           label: "詳細フィードバックを依頼する",
-          url: "https://timerex.net/s/sato.motoki_765a/c6616a1a/",
+          url: feedbackUrl(),
         },
         submitted_at: submittedAt,
       }),

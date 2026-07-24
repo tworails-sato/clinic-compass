@@ -12,7 +12,10 @@ import { ParticipantType } from "@/lib/questions";
 import type { ThemeComparison } from "@/lib/score-comparison";
 import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
-const feedbackUrl = process.env.NEXT_PUBLIC_TIMEREX_URL || process.env.NEXT_PUBLIC_FEEDBACK_URL || "https://timerex.net/s/sato.motoki_765a/c6616a1a/";
+const feedbackUrl =
+  process.env.NEXT_PUBLIC_FEEDBACK_URL ||
+  process.env.NEXT_PUBLIC_TIMEREX_URL ||
+  "https://app.spirinc.com/t/jjbpl6BvWT0_8ErSb6ZJI/as/kJSSa_PKI5d9jCQGSKjA7/confirm";
 
 function priorityComment(theme: string, index: number) {
   const openings = [
