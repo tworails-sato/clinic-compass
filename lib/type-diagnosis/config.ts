@@ -67,7 +67,38 @@ const animalIconPaths: Record<string, string> = {
   クロヒョウ: "/images/types/black-panther.svg",
 };
 
-const iconPathFor = (animal: string) => animalIconPaths[animal];
+const directorTypeIconPaths: Record<string, string> = {
+  オオカミ: "/images/types/director/wolf.png",
+  ライオン: "/images/types/director/lion.png",
+  フクロウ: "/images/types/director/owl.png",
+  シェパード: "/images/types/director/shepherd.png",
+  ゾウ: "/images/types/director/elephant.png",
+  ハヤブサ: "/images/types/director/falcon.png",
+  カピバラ: "/images/types/director/capybara.png",
+  クジャク: "/images/types/director/peacock.png",
+  ビーバー: "/images/types/director/beaver.png",
+  キツネ: "/images/types/director/fox.png",
+  カメ: "/images/types/director/turtle.png",
+  ゴリラ: "/images/types/director/gorilla.png",
+};
+
+const managerTypeIconPaths: Record<string, string> = {
+  オオカミ: "/images/types/manager/wolf.png",
+  フクロウ: "/images/types/manager/owl.png",
+  シェパード: "/images/types/manager/shepherd.png",
+  オウム: "/images/types/manager/parrot.png",
+  イルカ: "/images/types/manager/dolphin.png",
+  ウマ: "/images/types/manager/horse.png",
+  ビーバー: "/images/types/manager/beaver.png",
+  ミーアキャット: "/images/types/manager/meerkat.png",
+  ゾウ: "/images/types/manager/elephant.png",
+  ハヤブサ: "/images/types/manager/falcon.png",
+  カメ: "/images/types/manager/turtle.png",
+  クロヒョウ: "/images/types/manager/black-panther.png",
+};
+
+const iconPathFor = (animal: string, respondentType: RespondentType = "doctor") =>
+  (respondentType === "doctor" ? directorTypeIconPaths[animal] : managerTypeIconPaths[animal]) ?? animalIconPaths[animal];
 
 export const doctorTypeConfig: TypeDiagnosisConfig = {
   respondentType: "doctor",
@@ -295,7 +326,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "director_right_hand",
       name: "院長の右腕",
       animal: "オオカミ",
-      iconPath: iconPathFor("オオカミ"),
+      iconPath: iconPathFor("オオカミ", "manager"),
       label: "院長の右腕（オオカミ）",
       baseline: { field: 3.8, workflow: 3.4, organization: 3.6, policy: 4.6, execution: 3.7, control: 4.0 },
       required: [{ type: "min", ref: f("policy"), value: 4.0 }],
@@ -305,7 +336,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "strategic_staff",
       name: "戦略参謀",
       animal: "フクロウ",
-      iconPath: iconPathFor("フクロウ"),
+      iconPath: iconPathFor("フクロウ", "manager"),
       label: "戦略参謀（フクロウ）",
       baseline: { field: 3.7, workflow: 3.8, organization: 3.3, policy: 4.2, execution: 3.4, control: 4.6 },
       required: [{ type: "min", ref: f("control"), value: 4.0 }],
@@ -315,7 +346,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "field_commander",
       name: "現場の司令塔",
       animal: "シェパード",
-      iconPath: iconPathFor("シェパード"),
+      iconPath: iconPathFor("シェパード", "manager"),
       label: "現場の司令塔（シェパード）",
       baseline: { field: 4.6, workflow: 3.5, organization: 4.2, policy: 3.7, execution: 4.3, control: 3.8 },
       required: [{ type: "min", ref: f("field"), value: 4.0 }],
@@ -325,7 +356,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "inhouse_translator",
       name: "院内の通訳者",
       animal: "オウム",
-      iconPath: iconPathFor("オウム"),
+      iconPath: iconPathFor("オウム", "manager"),
       label: "院内の通訳者（オウム）",
       baseline: { field: 3.8, workflow: 3.5, organization: 4.3, policy: 4.6, execution: 3.5, control: 3.5 },
       required: [
@@ -338,7 +369,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "team_bridge",
       name: "チームの橋渡し役",
       animal: "イルカ",
-      iconPath: iconPathFor("イルカ"),
+      iconPath: iconPathFor("イルカ", "manager"),
       label: "チームの橋渡し役（イルカ）",
       baseline: { field: 4.0, workflow: 3.4, organization: 4.6, policy: 4.1, execution: 3.4, control: 3.3 },
       required: [{ type: "min", ref: f("organization"), value: 4.0 }],
@@ -348,7 +379,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "execution_steward",
       name: "実行の番頭",
       animal: "ウマ",
-      iconPath: iconPathFor("ウマ"),
+      iconPath: iconPathFor("ウマ", "manager"),
       label: "実行の番頭（ウマ）",
       baseline: { field: 4.3, workflow: 3.7, organization: 3.5, policy: 3.7, execution: 4.7, control: 3.8 },
       required: [{ type: "min", ref: f("execution"), value: 4.0 }],
@@ -358,7 +389,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "workflow_builder",
       name: "仕組みづくりの達人",
       animal: "ビーバー",
-      iconPath: iconPathFor("ビーバー"),
+      iconPath: iconPathFor("ビーバー", "manager"),
       label: "仕組みづくりの達人（ビーバー）",
       baseline: { field: 3.8, workflow: 4.7, organization: 3.8, policy: 3.4, execution: 4.0, control: 4.1 },
       required: [{ type: "min", ref: f("workflow"), value: 4.0 }],
@@ -368,7 +399,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "numbers_keeper",
       name: "数字の番人",
       animal: "ミーアキャット",
-      iconPath: iconPathFor("ミーアキャット"),
+      iconPath: iconPathFor("ミーアキャット", "manager"),
       label: "数字の番人（ミーアキャット）",
       baseline: { field: 4.1, workflow: 3.8, organization: 3.3, policy: 3.5, execution: 3.8, control: 4.7 },
       required: [{ type: "min", ref: a("numbers"), value: 4.0 }],
@@ -378,7 +409,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "people_deputy",
       name: "人育ての副将",
       animal: "ゾウ",
-      iconPath: iconPathFor("ゾウ"),
+      iconPath: iconPathFor("ゾウ", "manager"),
       label: "人育ての副将（ゾウ）",
       baseline: { field: 3.8, workflow: 3.5, organization: 4.7, policy: 4.0, execution: 3.7, control: 3.3 },
       required: [{ type: "min", ref: a("training"), value: 4.0 }],
@@ -388,7 +419,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "reform_driver",
       name: "改革の推進役",
       animal: "ハヤブサ",
-      iconPath: iconPathFor("ハヤブサ"),
+      iconPath: iconPathFor("ハヤブサ", "manager"),
       label: "改革の推進役（ハヤブサ）",
       baseline: { field: 4.0, workflow: 4.3, organization: 3.6, policy: 3.7, execution: 4.6, control: 3.6 },
       required: [
@@ -401,7 +432,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "defensive_manager",
       name: "守りの責任者",
       animal: "カメ",
-      iconPath: iconPathFor("カメ"),
+      iconPath: iconPathFor("カメ", "manager"),
       label: "守りの責任者（カメ）",
       baseline: { field: 3.8, workflow: 4.0, organization: 3.4, policy: 3.5, execution: 3.3, control: 4.8 },
       required: [{ type: "min", ref: a("risk"), value: 4.0 }],
@@ -411,7 +442,7 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
       key: "autonomous_team_supporter",
       name: "自走チームの黒子",
       animal: "クロヒョウ",
-      iconPath: iconPathFor("クロヒョウ"),
+      iconPath: iconPathFor("クロヒョウ", "manager"),
       label: "自走チームの黒子（クロヒョウ）",
       baseline: { field: 4.2, workflow: 4.6, organization: 4.5, policy: 4.1, execution: 4.5, control: 4.3 },
       required: [
