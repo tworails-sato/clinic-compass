@@ -74,7 +74,7 @@ export function generateReportDraft(
   const participant = response.participant_type === "director" ? "院長" : "事務長";
   const comparisonPrefix =
     comparisonCount > 0
-      ? `現時点の過去受検者平均（比較対象${comparisonCount}件）との比較では、`
+      ? "現時点の過去受検者平均との比較では、"
       : "現時点では比較対象となる過去受検者データがまだ十分にないため、";
 
   const overallTone =
