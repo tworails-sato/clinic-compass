@@ -56,9 +56,9 @@ export default function QuestionsPage() {
     window.localStorage.setItem(storageKeys.answers, JSON.stringify(answers));
 
     try {
-      await saveDraft(getOrCreateDraftId(), profile, answers);
-      setDraftMessage("途中保存しました");
-      window.setTimeout(() => setDraftMessage(""), 3000);
+      const result = await saveDraft(getOrCreateDraftId(), profile, answers, { sendReminder: true });
+      setDraftMessage(result.reminder === "sent" ? "途中保存しました。再開案内メールを送信しました" : "途中保存しました");
+      window.setTimeout(() => setDraftMessage(""), 4500);
     } catch (err) {
       console.error("[clinic-compass] Manual draft save failed", err);
       setError("途中保存に失敗しました。通信環境を確認し、再度お試しください。");
@@ -150,8 +150,9 @@ export default function QuestionsPage() {
             <div className="sticky-actions">
               {draftMessage && <span className="draft-save-message">{draftMessage}</span>}
               <button className="button compact draft-save-button" onClick={saveDraftManually} disabled={saving || draftSaving} type="button">
-                {draftSaving ? "保存中..." : "途中保存する"}
+                {draftSaving ? "保存中..." : "途中保存して後で再開"}
               </button>
+              <p className="draft-resume-note">回答はいつでも途中保存できます。同じ端末・同じブラウザなら続きから再開できます。</p>
               <button className="button compact" onClick={submit} disabled={saving || draftSaving} type="button">
                 {saving ? "保存中..." : "結果を見る"}
               </button>
@@ -217,12 +218,15 @@ function getOrCreateDraftId() {
   return next;
 }
 
-async function saveDraft(draftId: string, profile: Profile, answers: Answers) {
-  await fetch("/api/assessments/draft", {
+async function saveDraft(draftId: string, profile: Profile, answers: Answers, options: { sendReminder?: boolean } = {}) {
+  const response = await fetch("/api/assessments/draft", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "save", draftId, profile, answers }),
+    body: JSON.stringify({ action: "save", draftId, profile, answers, sendReminder: options.sendReminder }),
   });
+  const data = (await response.json().catch(() => ({}))) as { reminder?: "sent" | "already_sent" | "skipped" | "failed"; message?: string };
+  if (!response.ok) throw new Error(data.message || "Draft save failed");
+  return data;
 }
 
 async function completeDraft(draftId: string, responseId: string) {

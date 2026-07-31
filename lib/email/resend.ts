@@ -13,6 +13,10 @@ type SendMailInput = {
   html: string;
 };
 
+type DraftReminderInput = {
+  profile: Partial<Profile>;
+};
+
 type MailStatus = {
   ok: boolean;
   error: string;
@@ -34,6 +38,25 @@ function timerexUrl() {
     process.env.NEXT_PUBLIC_TIMEREX_URL ||
     "https://app.spirinc.com/t/jjbpl6BvWT0_8ErSb6ZJI/as/kJSSa_PKI5d9jCQGSKjA7/confirm"
   );
+}
+
+function appUrl() {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    "https://clinic.ceo-sherpa.com"
+  ).replace(/\/$/, "");
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function hasFullWidthCharacters(value: string) {
@@ -110,6 +133,31 @@ async function sendMail({ to, subject, html }: SendMailInput) {
 
   const data = text ? (JSON.parse(text) as { id?: string }) : {};
   return { ok: true, skipped: false, id: data.id || "" };
+}
+
+export async function sendDraftReminderEmail({ profile }: DraftReminderInput) {
+  const email = profile.email?.trim();
+  if (!email) {
+    console.info("[clinic-compass] Draft reminder skipped. email is empty.");
+    return { ok: false, skipped: true, id: "" };
+  }
+
+  const name = escapeHtml(profile.name?.trim() || "受検者");
+  const resumeUrl = `${appUrl()}/start`;
+  const html = `
+    <p>${name} 様</p>
+    <p>院長コンパスの回答を途中保存しました。</p>
+    <p>続きから再開する場合は、以下のURLよりアクセスし、「途中から再開する」ボタンを押してください。</p>
+    <p><strong>【回答を再開する】</strong><br/><a href="${resumeUrl}">${resumeUrl}</a></p>
+    <p>※同じ端末・同じブラウザで保存された情報をもとに再開できます。</p>
+    <p>今後ともよろしくお願いいたします。</p>
+  `;
+
+  return sendMail({
+    to: email,
+    subject: "【院長コンパス】回答を途中保存しました",
+    html,
+  });
 }
 
 async function sendAdminNotification(to: string, html: string) {

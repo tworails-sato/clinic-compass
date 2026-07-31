@@ -146,6 +146,7 @@ create table if not exists public.clinic_assessment_drafts (
   total_questions integer not null default 36,
   status text not null default 'draft' check (status in ('draft', 'ready', 'completed')),
   last_accessed_at timestamptz not null default now(),
+  reminder_sent_at timestamptz,
   completed_response_id uuid references public.clinic_assessment_responses(id) on delete set null,
   completed_at timestamptz,
   created_at timestamptz not null default now(),
@@ -241,3 +242,6 @@ on conflict (code) do nothing;
 
 alter table public.clinic_assessment_responses
   add column if not exists result_expires_at timestamptz not null default (now() + interval '7 days');
+
+alter table public.clinic_assessment_drafts
+  add column if not exists reminder_sent_at timestamptz;

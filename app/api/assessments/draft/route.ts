@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Answers, getQuestions, Profile } from "@/lib/assessment";
+import { sendDraftReminderEmail } from "@/lib/email/resend";
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
 
 type DraftBody = {
@@ -8,6 +9,11 @@ type DraftBody = {
   responseId?: string;
   profile?: Partial<Profile>;
   answers?: Answers;
+  sendReminder?: boolean;
+};
+
+type ExistingDraft = {
+  reminder_sent_at?: string | null;
 };
 
 function isUuid(value: string) {
@@ -78,6 +84,12 @@ export async function POST(request: Request) {
     const answers = body.answers ?? {};
     const count = answeredCount(answers);
     const total = totalQuestions(profile);
+    const existingDrafts = body.sendReminder
+      ? ((await supabaseAdminFetch(
+          `/rest/v1/clinic_assessment_drafts?draft_id=eq.${encodeURIComponent(draftId)}&select=reminder_sent_at&limit=1`,
+        )) as ExistingDraft[])
+      : [];
+    const alreadySentReminder = Boolean(existingDrafts[0]?.reminder_sent_at);
 
     await supabaseAdminFetch("/rest/v1/clinic_assessment_drafts?on_conflict=draft_id", {
       method: "POST",
@@ -99,7 +111,34 @@ export async function POST(request: Request) {
       }),
     });
 
-    return NextResponse.json({ ok: true, draftId, answeredCount: count, totalQuestions: total });
+    let reminder: "sent" | "already_sent" | "skipped" | "failed" = "skipped";
+    if (body.sendReminder) {
+      if (alreadySentReminder) {
+        reminder = "already_sent";
+      } else if (!profile.email) {
+        reminder = "skipped";
+      } else {
+        try {
+          const sent = await sendDraftReminderEmail({ profile });
+          if (sent.ok) {
+            reminder = "sent";
+            await supabaseAdminFetch(`/rest/v1/clinic_assessment_drafts?draft_id=eq.${encodeURIComponent(draftId)}`, {
+              method: "PATCH",
+              headers: { Prefer: "return=minimal" },
+              body: JSON.stringify({ reminder_sent_at: new Date().toISOString() }),
+            });
+            console.info(`[clinic-compass] Draft reminder mail accepted. draftId=${draftId} to=${profile.email} id=${sent.id || "n/a"}`);
+          } else {
+            reminder = "skipped";
+          }
+        } catch (error) {
+          reminder = "failed";
+          console.error("[clinic-compass] Draft reminder mail failed", { draftId, email: profile.email, error });
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true, draftId, answeredCount: count, totalQuestions: total, reminder });
   } catch (error) {
     console.error("[clinic-compass] Draft save failed", error);
     return NextResponse.json({ ok: false, message: "途中保存に失敗しました。" }, { status: 500 });
