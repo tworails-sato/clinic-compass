@@ -49,8 +49,6 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
 
   const responses = await listResponses();
   const drafts = await listDrafts();
-  const incompleteDraftsCount = drafts.filter((draft) => !draft.completed_at).length;
-  const completedDraftsCount = drafts.length - incompleteDraftsCount;
   const responseTypeResults = await Promise.all(
     responses.map(async (row) => {
       const saved = await getTypeResult(row.id);
@@ -82,6 +80,9 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         </Link>
         <div className="admin-head-actions">
           <span>管理画面</span>
+          <Link className="admin-head-link" href="/admin/drafts">
+            途中保存一覧{drafts.length > 0 ? `（${drafts.length}）` : ""}
+          </Link>
           <form action={logoutAction}>
             <button type="submit">ログアウト</button>
           </form>
@@ -105,49 +106,6 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
               typeResult={typeResultByResponseId.get(item.id) ?? null}
             />
           ))}
-          <div className="admin-draft-list">
-            <p>DRAFTS</p>
-            <h2>途中保存</h2>
-            {drafts.length > 0 && (
-              <div className="draft-summary-cards">
-                <span>
-                  未完了 <b>{incompleteDraftsCount}</b>
-                </span>
-                <span>
-                  完了 <b>{completedDraftsCount}</b>
-                </span>
-              </div>
-            )}
-            {drafts.length === 0 && <p className="admin-empty-small">途中保存データはありません。</p>}
-            {drafts.map((draft) => {
-              const answeredCount = Number(draft.answered_count) || 0;
-              const totalQuestions = Number(draft.total_questions) || 36;
-              const progress = totalQuestions > 0 ? Math.min(100, Math.round((answeredCount / totalQuestions) * 100)) : 0;
-
-              return (
-                <article className="draft-row" key={draft.id}>
-                  <div className="draft-row-head">
-                    <strong>{draft.name || "氏名未入力"}</strong>
-                    <em className={draft.completed_at ? "completed" : ""}>{draft.completed_at ? "完了" : "未完了"}</em>
-                  </div>
-                  <span>
-                    {draft.clinic_name || "医院名未入力"} ・ {draft.participant_type ? participantLabel(draft.participant_type) : "区分未選択"}
-                  </span>
-                  {draft.email && <small>メール：{draft.email}</small>}
-                  <div className="draft-progress">
-                    <div>
-                      <i style={{ width: `${progress}%` }} />
-                    </div>
-                    <small>
-                      回答数：{answeredCount}/{totalQuestions}（{progress}%）
-                    </small>
-                  </div>
-                  <small>保存日時：{formatDate(draft.updated_at)}</small>
-                  <small>最終アクセス：{formatDate(draft.last_accessed_at)}</small>
-                </article>
-              );
-            })}
-          </div>
         </aside>
 
         <section className="admin-detail">
