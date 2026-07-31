@@ -78,9 +78,10 @@ export async function listResponses(): Promise<AdminResponse[]> {
   return supabaseAdminFetch(`/rest/v1/clinic_assessment_responses?deleted_at=is.null&select=${responseSelect}&order=submitted_at.desc`) as Promise<AdminResponse[]>;
 }
 
-export async function listDrafts(): Promise<AdminDraft[]> {
+export async function listDrafts(options: { includeCompleted?: boolean } = {}): Promise<AdminDraft[]> {
+  const completedFilter = options.includeCompleted ? "" : "&completed_at=is.null";
   return supabaseAdminFetch(
-    `/rest/v1/clinic_assessment_drafts?select=${draftSelect}&order=last_accessed_at.desc&limit=50`,
+    `/rest/v1/clinic_assessment_drafts?select=${draftSelect}${completedFilter}&order=last_accessed_at.desc&limit=50`,
   ) as Promise<AdminDraft[]>;
 }
 

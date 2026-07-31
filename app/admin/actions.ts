@@ -45,3 +45,20 @@ export async function deleteResponseAction(formData: FormData) {
   revalidatePath("/admin");
   redirect("/admin?deleted=1");
 }
+
+export async function deleteDraftAction(formData: FormData) {
+  await requireAdminUser();
+  const draftId = String(formData.get("draft_id") ?? "");
+  if (!draftId) redirect("/admin/drafts");
+
+  await supabaseAdminFetch(`/rest/v1/clinic_assessment_drafts?id=eq.${encodeURIComponent(draftId)}`, {
+    method: "DELETE",
+    headers: {
+      Prefer: "return=minimal",
+    },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/drafts");
+  redirect("/admin/drafts?deleted=1");
+}
