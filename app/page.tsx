@@ -1,16 +1,5 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { ClinicLanding } from "@/components/ClinicLanding";
-import { SiteHeader } from "@/components/SiteHeader";
+import { DoctorCompassLanding } from "@/components/DoctorCompassLanding";
 
 export default function Home() {
-  const router = useRouter();
-
-  return (
-    <>
-      <SiteHeader />
-      <ClinicLanding onStart={() => router.push("/start")} />
-    </>
-  );
+  return <DoctorCompassLanding />;
 }
