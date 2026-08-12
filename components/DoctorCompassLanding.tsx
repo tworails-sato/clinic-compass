@@ -139,9 +139,19 @@ function ResultMock({
   );
 }
 
-function Cta({ children = CTA_LABEL, blue = false, big = false }: { children?: React.ReactNode; blue?: boolean; big?: boolean }) {
+function Cta({
+  children = CTA_LABEL,
+  blue = false,
+  big = false,
+  shine = false,
+}: {
+  children?: React.ReactNode;
+  blue?: boolean;
+  big?: boolean;
+  shine?: boolean;
+}) {
   return (
-    <a href={START_URL} className={`cta${blue ? " blue" : ""}${big ? " big" : ""}`}>
+    <a href={START_URL} className={`cta${blue ? " blue" : ""}${big ? " big" : ""}${shine ? " shine" : ""}`}>
       {children}
     </a>
   );
@@ -178,7 +188,7 @@ export function DoctorCompassLanding() {
               <span className="badge">約5分で完了</span>
               <span className="badge">スマートフォン対応</span>
             </div>
-            <Cta />
+            <Cta shine />
             <div className="cta-sub">
               <b>約5分</b>／無料／スマートフォン対応・情報入力なしですぐに始められます
             </div>
