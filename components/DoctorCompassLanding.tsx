@@ -1,15 +1,34 @@
 const START_URL = "/start";
+const CTA_LABEL = "無料で自分の経営タイプを診断する";
 
-const typeChips = [
-  "孤高の名医 オオカミ",
-  "現場主義院長 シェパード",
-  "改革ドクター ハヤブサ",
-  "カリスマ院長 クジャク",
-  "数字派院長 キツネ",
-  "仕組み化院長 ビーバー",
-  "任せ上手院長 ゴリラ",
-  "堅実経営院長 カメ",
-  "地域の顔 カピバラ",
+const doctorTypes = [
+  {
+    image: "/images/types/director/lion.png",
+    animal: "ライオン",
+    name: "情熱の船長",
+    feature: "院長の想いがチームの原動力",
+  },
+  {
+    image: "/images/types/director/elephant.png",
+    animal: "ゾウ",
+    name: "人育て院長",
+    feature: "人を通じて医院を育てるタイプ",
+  },
+  {
+    image: "/images/types/director/owl.png",
+    animal: "フクロウ",
+    name: "未来の設計士",
+    feature: "将来の医院像や構想を描くのが得意",
+  },
+  { image: "/images/types/director/wolf.png", name: "孤高の名医", animal: "オオカミ", feature: "専門性と診療力が医院の価値の中心" },
+  { image: "/images/types/director/shepherd.png", name: "現場主義院長", animal: "シェパード", feature: "現場を細かく把握し自ら動くタイプ" },
+  { image: "/images/types/director/falcon.png", name: "改革ドクター", animal: "ハヤブサ", feature: "新しい取り組みを積極的に進めるタイプ" },
+  { image: "/images/types/director/peacock.png", name: "カリスマ院長", animal: "クジャク", feature: "院長の魅力や発信が医院の集患につながる" },
+  { image: "/images/types/director/fox.png", name: "数字派院長", animal: "キツネ", feature: "数字を根拠に経営判断を行うタイプ" },
+  { image: "/images/types/director/beaver.png", name: "仕組み化院長", animal: "ビーバー", feature: "ルールや仕組みで医院を動かすのが得意" },
+  { image: "/images/types/director/gorilla.png", name: "任せ上手院長", animal: "ゴリラ", feature: "組織に判断と実行を任せられるタイプ" },
+  { image: "/images/types/director/turtle.png", name: "堅実経営院長", animal: "カメ", feature: "安全と安定を最優先する堅実なタイプ" },
+  { image: "/images/types/director/capybara.png", name: "地域の顔", animal: "カピバラ", feature: "地域での信頼関係が強みのタイプ" },
 ];
 
 const domainCards = [
@@ -120,7 +139,7 @@ function ResultMock({
   );
 }
 
-function Cta({ children, blue = false, big = false }: { children: React.ReactNode; blue?: boolean; big?: boolean }) {
+function Cta({ children = CTA_LABEL, blue = false, big = false }: { children?: React.ReactNode; blue?: boolean; big?: boolean }) {
   return (
     <a href={START_URL} className={`cta${blue ? " blue" : ""}${big ? " big" : ""}`}>
       {children}
@@ -136,7 +155,7 @@ export function DoctorCompassLanding() {
           <div className="brand">
             <small>DOCTOR&apos;S COMPASS</small>院長コンパス
           </div>
-          <Cta blue>タイプを確認する</Cta>
+          <Cta blue />
         </div>
       </header>
 
@@ -159,16 +178,16 @@ export function DoctorCompassLanding() {
               <span className="badge">約5分で完了</span>
               <span className="badge">スマートフォン対応</span>
             </div>
-            <Cta>無料で自分のタイプを確認する</Cta>
+            <Cta />
             <div className="cta-sub">
               <b>約5分</b>／無料／スマートフォン対応・情報入力なしですぐに始められます
             </div>
           </div>
           <ResultMock
             image="/images/types/director/elephant.png"
-            alt="ゾウ"
+            alt="タイプ診断のサンプルアイコン"
             name="人育て院長"
-            description="ゾウ・育成と定着に強みが出やすいタイプ"
+            description="育成と定着に強みが出やすいタイプ"
             variant="blue"
             strengths="人材育成／定着／方向性"
             gaps="収益設計／権限移譲"
@@ -245,89 +264,20 @@ export function DoctorCompassLanding() {
         </div>
       </section>
 
-      <section className="sample-section">
-        <div className="wrap">
-          <div className="eyebrow">RESULT SAMPLE</div>
-          <h2 className="sec">いくつかの質問で、ここまで分かります</h2>
-          <p className="lead">実際の診断結果は、こんなイメージでお届けします。</p>
-          <div className="sample-mock">
-            <ResultMock
-              image="/images/types/director/owl.png"
-              alt="フクロウ"
-              name="未来の設計士"
-              description="フクロウ・構想と仕組みづくりに強みが出やすいタイプ"
-              variant="green"
-              strengths="方向性／仕組み化／品質"
-              gaps="人材定着／収益"
-              priority="収益・業務設計"
-            />
-          </div>
-          <div className="cta-wrap">
-            <Cta blue>無料で自分の結果を見てみる</Cta>
-            <div className="cta-sub">
-              <b>約5分</b>／無料／スマートフォン対応
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="types">
-        <div className="wrap">
-          <div className="eyebrow">12 TYPES</div>
-          <h2 className="sec">あなたの医院経営は、どのスタイル？</h2>
-          <p className="lead">院長版・事務長版それぞれ12タイプから、現在の経営・マネジメントスタイルを整理します。</p>
-          <div className="type-intent">
-            <span className="ti-badge">これは性格診断ではありません</span>
-            タイプは、<b>強みが出やすい領域</b>と<b>課題が生まれやすい領域</b>を映すものです。自院がいま「どこを優先して確認すべきか」を整理する入口として使います。
-          </div>
-          <div className="type-hero">
-            {[
-              ["/images/types/director/lion.png", "ライオン", "情熱の船長"],
-              ["/images/types/director/elephant.png", "ゾウ", "人育て院長"],
-              ["/images/types/director/owl.png", "フクロウ", "未来の設計士"],
-            ].map(([image, animal, name]) => (
-              <div className="tcard" key={name}>
-                <div className="animal">
-                  <img src={image} alt={animal} />
-                </div>
-                <div className="nm">{name}</div>
-                <div className="role">{animal}</div>
-              </div>
-            ))}
-          </div>
-          <div className="type-rest">
-            {typeChips.map((chip) => (
-              <span className="chip" key={chip}>
-                {chip}
-              </span>
-            ))}
-          </div>
-          <p className="note">タイプは優劣や性格を決めるものではありません。強みが現れやすい領域と、課題が生まれやすい領域を整理するための診断です。</p>
-        </div>
-      </section>
-
-      <section>
-        <div className="wrap">
-          <div className="eyebrow">6 DOMAINS</div>
-          <h2 className="sec">6つの領域から、医院経営を確認します</h2>
-          <p className="lead">院長先生が確認しやすい言葉で整理しています。</p>
-          <div className="six">
-            {domainCards.map(([icon, title, text]) => (
-              <div className="dcard" key={title}>
-                <div className="di">{icon}</div>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="after">
         <div className="wrap">
           <div className="eyebrow light">AFTER DIAGNOSIS</div>
           <h2 className="sec">診断後は、あなた専用の詳細結果をご覧いただけます</h2>
           <p className="lead">結果の一部を確認したあと、さらに詳しい内容へ。</p>
+          <div className="personal-report">
+            <div>
+              <h3>同じタイプでも、結果は一人ひとり違います</h3>
+              <p>
+                同じタイプでも、医院経営のバランスは一人ひとり違います。6領域の個別スコアから、あなただけの診断レポートが完成します。
+              </p>
+            </div>
+            <RadarMock variant="blue" />
+          </div>
           <div className="aftergrid">
             {[
               ["12タイプの詳細解説", "あなたのタイプの強み・つまずきやすい点を詳しく。"],
@@ -342,8 +292,49 @@ export function DoctorCompassLanding() {
             ))}
           </div>
           <div className="cta-wrap">
-            <Cta>無料で医院の現在地を確認する</Cta>
+            <Cta />
             <div className="cta-sub light">約5分／無料／スマートフォン対応</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="types">
+        <div className="wrap">
+          <div className="eyebrow">12 TYPES</div>
+          <h2 className="sec">あなたの医院経営は、どのスタイル？</h2>
+          <p className="lead">院長版・事務長版それぞれ12タイプから、現在の経営・マネジメントスタイルを整理します。</p>
+          <p className="type-message">
+            これは性格診断ではありません。6つの経営領域の診断結果をもとに、医院経営への向き合い方や意思決定の傾向を12タイプに分類します。
+            タイプごとに、活かすべき強み・陥りやすい課題・優先して取り組みたい経営テーマが異なります。
+          </p>
+          <div className="type-grid">
+            {doctorTypes.map(({ image, animal, name, feature }) => (
+              <div className="tcard" key={name}>
+                <div className="animal">
+                  <img src={image} alt={animal} />
+                </div>
+                <div className="nm">{name}</div>
+                <p>{feature}</p>
+              </div>
+            ))}
+          </div>
+          <p className="note">タイプは優劣や性格を決めるものではありません。強みが現れやすい領域と、課題が生まれやすい領域を整理するための診断です。</p>
+        </div>
+      </section>
+
+      <section>
+        <div className="wrap">
+          <div className="eyebrow">6 DOMAINS</div>
+          <h2 className="sec">6つの領域から、医院経営を確認します</h2>
+          <p className="lead">6つの領域から医院経営の現在地を可視化します。それぞれの領域を数値化し、そのバランスから、あなたの経営タイプを導き出します。</p>
+          <div className="six">
+            {domainCards.map(([icon, title, text]) => (
+              <div className="dcard" key={title}>
+                <div className="di">{icon}</div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -351,16 +342,29 @@ export function DoctorCompassLanding() {
       <section>
         <div className="wrap">
           <div className="eyebrow">FOR MEMBERS</div>
-          <h2 className="sec">診断後も、医院経営に役立つ情報を利用できます</h2>
-          <p className="lead">診断結果とあわせて、継続的に学べる環境をご用意しています。</p>
+          <h2 className="sec">診断後も、医院経営の「次の一手」を学べます</h2>
+          <p className="lead">
+            診断で自院の課題や特徴が見えたら、それに関連する経営情報を学べます。医療経営メディア「REFOLMO Med」の、実践的なウェビナーや資料をご利用いただけます。
+          </p>
+          <div className="refolmo-showcase">
+            <div className="refolmo-brand">
+              <img src="/images/refolmo/logo.jpg" alt="REFOLMO Med" />
+              <p>医療を構造から再設計する</p>
+              <a href="https://remed.refolmo.com/" target="_blank" rel="noreferrer">
+                REFOLMO Medを見る
+              </a>
+            </div>
+            <div className="refolmo-visuals">
+              <img src="/images/refolmo/contents.jpg" alt="REFOLMO Med のコンテンツ例" />
+            </div>
+          </div>
           <div className="remed3">
             {[
-              ["▶", "ウェビナー視聴", "医療機関の経営・運営に役立つウェビナーを無料で。現場の課題を構造から整理します。"],
-              ["▤", "ダウンロード資料", "業務改善、組織づくり、DX、集患、採用など、運営に役立つ資料を無料で。"],
-              ["⟳", "アーカイブ見放題", "過去のウェビナーを、必要なタイミングでいつでも視聴できます。"],
-            ].map(([icon, title, text]) => (
+              ["ウェビナー視聴", "医療機関の経営・運営に役立つウェビナーを無料で。現場の課題を構造から整理します。"],
+              ["ダウンロード資料", "業務改善、組織づくり、DX、集患、採用など、運営に役立つ資料を無料で。"],
+              ["アーカイブ見放題", "過去のウェビナーを、必要なタイミングでいつでも視聴できます。"],
+            ].map(([title, text]) => (
               <div className="rcard" key={title}>
-                <div className="ri">{icon}</div>
                 <h3>{title}</h3>
                 <p>{text}</p>
               </div>
@@ -427,7 +431,7 @@ export function DoctorCompassLanding() {
             <br />
             自院の強みと経営スタイルを整理する入口として、お使いください。
           </p>
-          <Cta big>無料で医院の現在地を確認する</Cta>
+          <Cta big />
           <div className="cta-sub">約5分／無料／スマートフォン対応</div>
         </div>
       </section>
@@ -438,7 +442,7 @@ export function DoctorCompassLanding() {
         <div className="sb-txt">
           <b>約5分・無料</b>スマホ対応
         </div>
-        <Cta>自分のタイプを確認する</Cta>
+        <Cta />
       </div>
     </main>
   );
