@@ -1,16 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
+import { RefolmoRegistrationGate, type RefolmoRegistrationProfile } from "@/components/RefolmoRegistrationGate";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 import type { ThemeComparison } from "@/lib/score-comparison";
-import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
+import { calculateTypeDiagnosis, getTypeDefinition, type TypeDiagnosisResultData } from "@/lib/type-diagnosis/engine";
 
 const feedbackUrl =
   process.env.NEXT_PUBLIC_FEEDBACK_URL ||
@@ -32,6 +33,7 @@ export default function ResultPage() {
   const [profile, setProfile] = useState<Profile>(emptyProfile);
   const [answers, setAnswers] = useState<Answers>({});
   const [averageComparison, setAverageComparison] = useState<{ count: number; comparisons: ThemeComparison[] } | null>(null);
+  const [detailsUnlocked, setDetailsUnlocked] = useState(false);
 
   useEffect(() => {
     const savedProfile = window.sessionStorage.getItem(storageKeys.profile);
@@ -42,6 +44,9 @@ export default function ResultPage() {
     }
     setProfile(JSON.parse(savedProfile));
     setAnswers(JSON.parse(savedAnswers));
+    const responseId = window.sessionStorage.getItem(storageKeys.savedResponseId) ?? "";
+    const unlockKey = refolmoUnlockKey(responseId, JSON.parse(savedProfile) as Profile);
+    setDetailsUnlocked(window.sessionStorage.getItem(unlockKey) === "true");
   }, [router]);
 
   const grouped = useMemo(() => getGroupedScores(profile, answers), [profile, answers]);
@@ -60,7 +65,7 @@ export default function ResultPage() {
   );
 
   useEffect(() => {
-    if (!profile.type || grouped.length === 0) return;
+    if (!detailsUnlocked || !profile.type || grouped.length === 0) return;
 
     const responseId = window.sessionStorage.getItem(storageKeys.savedResponseId) ?? "";
     let cancelled = false;
@@ -89,7 +94,34 @@ export default function ResultPage() {
     return () => {
       cancelled = true;
     };
-  }, [profile.type, grouped]);
+  }, [detailsUnlocked, profile.type, grouped]);
+
+  const unlockDetails = useCallback((registeredProfile: RefolmoRegistrationProfile) => {
+    const responseId = window.sessionStorage.getItem(storageKeys.savedResponseId) ?? "";
+    const resultToken = window.sessionStorage.getItem(storageKeys.resultToken) ?? "";
+    const nextProfile = {
+      ...profile,
+      name: registeredProfile.name,
+      email: registeredProfile.email,
+      clinic: registeredProfile.clinic,
+    };
+
+    setProfile(nextProfile);
+    window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(nextProfile));
+    window.localStorage.setItem(storageKeys.profile, JSON.stringify(nextProfile));
+    window.sessionStorage.setItem(refolmoUnlockKey(responseId, nextProfile), "true");
+    setDetailsUnlocked(true);
+    if (responseId) {
+      fetch("/api/assessments/refolmo-registration", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responseId, resultToken, profile: nextProfile }),
+      }).catch((error) => {
+        console.error("[clinic-compass] REFOLMO registration sync request failed", error);
+      });
+    }
+    window.setTimeout(() => document.getElementById("detailed-result")?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+  }, [profile]);
 
   if (!profile.type) return null;
 
@@ -100,9 +132,10 @@ export default function ResultPage() {
         <section className="result-hero">
           <div className="wrap">
             <p className="eyebrow">ASSESSMENT RESULT</p>
-            <h1>{profile.name}さんの診断結果</h1>
+            <h1>{profile.name ? `${profile.name}さんの診断結果` : "診断結果プレビュー"}</h1>
             <p>
-              {profile.clinic} ／ {roles[profile.type as ParticipantType][0]}
+              {profile.clinic ? `${profile.clinic} ／ ` : ""}
+              {roles[profile.type as ParticipantType][0]}
             </p>
             <div className="total">
               <span>総合スコア</span>
@@ -116,96 +149,132 @@ export default function ResultPage() {
             <h2>医院の現状を、地図のように俯瞰する</h2>
             <p>この結果は優劣を決めるものではありません。具体的な状況を確認し、次の行動を考えるための入り口です。</p>
           </section>
-          <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} />
-          <div className="result-grid">
-            <section className="result-card chart-card">
-              <div className="card-heading">
-                <p className="eyebrow teal">THEME BALANCE</p>
-                <h2>テーマ別スコア</h2>
+          {!detailsUnlocked ? (
+            <>
+              <TypeDiagnosisTeaser result={typeDiagnosis} />
+              <RefolmoRegistrationGate onSuccess={unlockDetails} />
+            </>
+          ) : (
+            <div id="detailed-result">
+              <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} />
+              <div className="result-grid">
+                <section className="result-card chart-card">
+                  <div className="card-heading">
+                    <p className="eyebrow teal">THEME BALANCE</p>
+                    <h2>テーマ別スコア</h2>
+                  </div>
+                  <Radar data={grouped} averageData={averageScores} />
+                  <div className="score-list">
+                    {grouped.map((row) => (
+                      <div key={row.name}>
+                        <span>{row.name}</span>
+                        <b>{row.score.toFixed(1)}</b>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                <section className="result-card">
+                  <p className="eyebrow teal">PRIORITY CHECK</p>
+                  <h2>優先確認テーマ</h2>
+                  <p className="hint">
+                    優先確認テーマは、スコア順に、取り組む候補を表示しています。単にスコアだけで良し悪しを判断するのではなく、具体的なアクションを考える入口としてご覧ください。
+                  </p>
+                  {priorities.map((row, i) => (
+                    <article className="priority rich" key={row.name}>
+                      <span>0{i + 1}</span>
+                      <div>
+                        <strong>{row.name}</strong>
+                        <p>スコア {row.score.toFixed(1)} ／ まずは現状・担当・期限を確認しましょう。</p>
+                      </div>
+                    </article>
+                  ))}
+                </section>
               </div>
-              <Radar data={grouped} averageData={averageScores} />
-              <div className="score-list">
+              {averageComparison && <AverageComparison comparisons={averageComparison.comparisons} count={averageComparison.count} />}
+              <section className="comment-card">
+                <p className="eyebrow">COMPASS NOTE</p>
+                <h2>優先確認テーマから見る、次の一歩。</h2>
+                <div className="priority-comment-list">
+                  {priorities.map((row, i) => (
+                    <p key={row.name}>
+                      <strong>{row.name}</strong>
+                      {priorityComment(row.name, i)}
+                    </p>
+                  ))}
+                </div>
+                <p className="feedback-lead">
+                  15分ほどで詳細の解説とアクションプランの整理を行います。より具体的に確認したい場合は、詳細フィードバックをご予約ください。
+                </p>
+              </section>
+              <section className="accordion-card">
+                <p className="eyebrow teal">HOW TO READ</p>
+                <h2>テーマの見方を確認する</h2>
                 {grouped.map((row) => (
-                  <div key={row.name}>
-                    <span>{row.name}</span>
-                    <b>{row.score.toFixed(1)}</b>
-                  </div>
+                  <details key={row.name}>
+                    <summary>
+                      {row.name}
+                      <b>{row.score.toFixed(1)}</b>
+                    </summary>
+                    <p>
+                      このテーマは「{row.children.join("／")}」の観点から算出しています。点数の背景にある具体的な業務・判断・情報共有の状態を、関係者と確認してみてください。
+                    </p>
+                  </details>
                 ))}
-              </div>
-            </section>
-            <section className="result-card">
-              <p className="eyebrow teal">PRIORITY CHECK</p>
-              <h2>優先確認テーマ</h2>
-              <p className="hint">
-                優先確認テーマは、スコア順に、取り組む候補を表示しています。単にスコアだけで良し悪しを判断するのではなく、具体的なアクションを考える入口としてご覧ください。
-              </p>
-              {priorities.map((row, i) => (
-                <article className="priority rich" key={row.name}>
-                  <span>0{i + 1}</span>
-                  <div>
-                    <strong>{row.name}</strong>
-                    <p>スコア {row.score.toFixed(1)} ／ まずは現状・担当・期限を確認しましょう。</p>
-                  </div>
-                </article>
-              ))}
-            </section>
-          </div>
-          {averageComparison && <AverageComparison comparisons={averageComparison.comparisons} count={averageComparison.count} />}
-          <section className="comment-card">
-            <p className="eyebrow">COMPASS NOTE</p>
-            <h2>優先確認テーマから見る、次の一歩。</h2>
-            <div className="priority-comment-list">
-              {priorities.map((row, i) => (
-                <p key={row.name}>
-                  <strong>{row.name}</strong>
-                  {priorityComment(row.name, i)}
-                </p>
-              ))}
-            </div>
-            <p className="feedback-lead">
-              15分ほどで詳細の解説とアクションプランの整理を行います。より具体的に確認したい場合は、詳細フィードバックをご予約ください。
-            </p>
-          </section>
-          <section className="accordion-card">
-            <p className="eyebrow teal">HOW TO READ</p>
-            <h2>テーマの見方を確認する</h2>
-            {grouped.map((row) => (
-              <details key={row.name}>
-                <summary>
-                  {row.name}
-                  <b>{row.score.toFixed(1)}</b>
-                </summary>
+              </section>
+              <section className="feedback-cta-card">
                 <p>
-                  このテーマは「{row.children.join("／")}」の観点から算出しています。点数の背景にある具体的な業務・判断・情報共有の状態を、関係者と確認してみてください。
+                  診断結果をもとに、医院の課題整理や改善の優先順位について個別フィードバックをご希望の方は
+                  こちらからご予約ください。
                 </p>
-              </details>
-            ))}
-          </section>
-          <section className="feedback-cta-card">
-            <p>
-              診断結果をもとに、医院の課題整理や改善の優先順位について個別フィードバックをご希望の方は
-              こちらからご予約ください。
-            </p>
-            <a className="button cta-yellow" href={feedbackUrl} target="_blank" rel="noopener noreferrer">
-              個別フィードバックを予約する
-            </a>
-          </section>
-          <div className="result-actions">
-            <Link
-              className="button subtle"
-              href="/start"
-              onClick={() => {
-                window.sessionStorage.removeItem(storageKeys.answers);
-              }}
-            >
-              もう一度診断する
-            </Link>
-            <a className="button" href={feedbackUrl} target="_blank" rel="noopener noreferrer">
-              詳細フィードバックを依頼する →
-            </a>
-          </div>
+                <a className="button cta-yellow" href={feedbackUrl} target="_blank" rel="noopener noreferrer">
+                  個別フィードバックを予約する
+                </a>
+              </section>
+              <div className="result-actions">
+                <Link
+                  className="button subtle"
+                  href="/start"
+                  onClick={() => {
+                    window.sessionStorage.removeItem(storageKeys.answers);
+                  }}
+                >
+                  もう一度診断する
+                </Link>
+                <a className="button" href={feedbackUrl} target="_blank" rel="noopener noreferrer">
+                  詳細フィードバックを依頼する →
+                </a>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </>
   );
+}
+
+function TypeDiagnosisTeaser({ result }: { result: TypeDiagnosisResultData | null }) {
+  if (!result) return null;
+
+  const definition = getTypeDefinition(result.respondentType, result.mainTypeKey);
+
+  return (
+    <section className="type-teaser-card">
+      <p className="eyebrow teal">TYPE PREVIEW</p>
+      <div className="type-teaser-main">
+        {definition?.iconPath && <img src={definition.iconPath} alt="" />}
+        <div>
+          <p>あなたの医院経営タイプは</p>
+          <h2>「{result.mainTypeLabel}」です</h2>
+          <span>{definition?.summary ?? "回答傾向から医院経営スタイルを整理した参考タイプです。"}</span>
+        </div>
+      </div>
+      <p className="type-teaser-note">
+        詳しい6領域スコア・レーダーチャート・あなただけの診断レポートを見るには、REFOLMO Medの会員登録が必要です。
+      </p>
+    </section>
+  );
+}
+
+function refolmoUnlockKey(responseId: string, profile: Profile) {
+  return `clinic-compass:refolmo-unlocked:${responseId || profile.email || "current"}`;
 }

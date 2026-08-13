@@ -88,7 +88,7 @@ export default function QuestionsPage() {
         },
         body: JSON.stringify({ profile, answers }),
       });
-      const data = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string; responseId?: string };
+      const data = (await response.json().catch(() => ({}))) as { ok?: boolean; message?: string; responseId?: string; resultToken?: string };
 
       if (!response.ok || !data.ok) {
         setError(data.message || "診断結果を保存できませんでした。時間をおいて再度お試しください。");
@@ -98,6 +98,7 @@ export default function QuestionsPage() {
 
       if (data.responseId) {
         window.sessionStorage.setItem(storageKeys.savedResponseId, data.responseId);
+        if (data.resultToken) window.sessionStorage.setItem(storageKeys.resultToken, data.resultToken);
         await completeDraft(getOrCreateDraftId(), data.responseId);
       }
 
@@ -122,9 +123,7 @@ export default function QuestionsPage() {
           <section className="assessment-head">
             <p className="step">STEP 2 / 回答</p>
             <h1>{roles[profile.type as ParticipantType][0]}向けアセスメント</h1>
-            <p>
-              {profile.clinic}　{profile.name}さん
-            </p>
+            <p>回答後に簡単な情報登録をいただくと、詳細結果をご覧いただけます。</p>
           </section>
 
           <div className="score-guide">

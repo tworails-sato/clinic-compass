@@ -6,16 +6,6 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { emptyProfile, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 
-const referralSources = [
-  "SNS",
-  "note",
-  "Web検索",
-  "知人の紹介",
-  "経営支援者・コンサルタントからの紹介",
-  "セミナー・イベント",
-  "その他",
-];
-
 export default function StartPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile>(emptyProfile);
@@ -29,7 +19,7 @@ export default function StartPage() {
   }, []);
 
   useEffect(() => {
-    if (!profile.name && !profile.email && !profile.clinic && !profile.type && !profile.referralSource) return;
+    if (!profile.type) return;
     window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(profile));
     window.localStorage.setItem(storageKeys.profile, JSON.stringify(profile));
 
@@ -49,13 +39,8 @@ export default function StartPage() {
   }
 
   function start() {
-    if (!profile.name || !profile.email || !profile.clinic || !profile.type) {
-      setError("氏名・メールアドレス・医院名・対象者区分を入力してください。");
-      return;
-    }
-
-    if (profile.referralSource === "知人の紹介" && !profile.referrerName?.trim()) {
-      setError("ご紹介者様のお名前を入力してください。");
+    if (!profile.type) {
+      setError("対象者区分を選択してください。");
       return;
     }
 
@@ -78,9 +63,9 @@ export default function StartPage() {
     }
 
     const draftProfile = { ...emptyProfile, ...JSON.parse(savedProfile) } as Profile;
-    if (!draftProfile.name || !draftProfile.email || !draftProfile.clinic || !draftProfile.type) {
+    if (!draftProfile.type) {
       setProfile(draftProfile);
-      setError("途中保存データを読み込みました。未入力の基本情報を入力してから設問へ進んでください。");
+      setError("途中保存データを読み込みました。対象者区分を選択してから設問へ進んでください。");
       return;
     }
 
@@ -96,7 +81,7 @@ export default function StartPage() {
       <main className="main">
         <div className="wrap">
           <section className="card profile-card">
-            <p className="step">STEP 1 / 基本情報</p>
+            <p className="step">STEP 1 / 診断選択</p>
             <h2>診断をはじめましょう</h2>
             <p className="lead">対象者区分に応じて、表示する設問が切り替わります。</p>
             <div className="roles">
@@ -111,49 +96,6 @@ export default function StartPage() {
                   <span>{roles[type][1]}</span>
                 </button>
               ))}
-            </div>
-            <div className="profile">
-              <label>
-                氏名
-                <input value={profile.name} onChange={(e) => updateProfile({ name: e.target.value })} />
-              </label>
-              <label>
-                メールアドレス
-                <input type="email" value={profile.email} onChange={(e) => updateProfile({ email: e.target.value })} />
-              </label>
-              <label>
-                医院名
-                <input value={profile.clinic} onChange={(e) => updateProfile({ clinic: e.target.value })} />
-              </label>
-              <label>
-                この診断をどちらでお知りになりましたか？
-                <select
-                  value={profile.referralSource ?? ""}
-                  onChange={(e) =>
-                    updateProfile({
-                      referralSource: e.target.value,
-                      referrerName: e.target.value === "知人の紹介" ? profile.referrerName ?? "" : "",
-                    })
-                  }
-                >
-                  <option value="">選択してください</option>
-                  {referralSources.map((source) => (
-                    <option key={source} value={source}>
-                      {source}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {profile.referralSource === "知人の紹介" && (
-                <label>
-                  ご紹介者様のお名前
-                  <input
-                    value={profile.referrerName ?? ""}
-                    onChange={(e) => updateProfile({ referrerName: e.target.value })}
-                    placeholder="例：山田 太郎"
-                  />
-                </label>
-              )}
             </div>
             {error && <p className="error">{error}</p>}
             <div className="start-actions">

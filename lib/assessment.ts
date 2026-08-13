@@ -97,5 +97,6 @@ export const storageKeys = {
   profile: "clinic-compass-profile",
   answers: "clinic-compass-answers",
   savedResponseId: "clinic-compass-response-id",
+  resultToken: "clinic-compass-result-token",
   draftId: "clinic-compass-draft-id",
 };

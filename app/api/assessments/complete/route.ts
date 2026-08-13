@@ -30,14 +30,18 @@ function feedbackUrl() {
   );
 }
 
+function hasContactProfile(profile: Profile) {
+  return Boolean(profile.name?.trim() && profile.email?.trim() && profile.clinic?.trim());
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { profile?: Profile; answers?: Answers };
     const profile = body.profile;
     const answers = body.answers ?? {};
 
-    if (!profile?.name || !profile.email || !profile.clinic || !profile.type) {
-      return NextResponse.json({ ok: false, message: "基本情報が不足しています。" }, { status: 400 });
+    if (!profile?.type) {
+      return NextResponse.json({ ok: false, message: "対象者区分が不足しています。" }, { status: 400 });
     }
 
     const questions = getQuestions(profile);
@@ -61,9 +65,9 @@ export async function POST(request: Request) {
         question_set_code: questionSetCode(profile.type),
         question_set_version: 1,
         participant_type: profile.type,
-        name: profile.name,
-        email: profile.email,
-        clinic_name: profile.clinic,
+        name: profile.name?.trim() || "会員登録前",
+        email: profile.email?.trim() || "",
+        clinic_name: profile.clinic?.trim() || "会員登録前",
         basic_info: {
           referral_source: profile.referralSource ?? "",
           referrer_name: profile.referrerName ?? "",
@@ -144,12 +148,17 @@ export async function POST(request: Request) {
       }
     }
 
-    const mailResult = await sendCompletionEmails({
-      profile,
-      responseId: response.id,
-      submittedAt: response.submitted_at || submittedAt,
-      resultUrl: `${appBaseUrl()}/result/${response.result_token}`,
-    });
+    const mailResult = hasContactProfile(profile)
+      ? await sendCompletionEmails({
+          profile,
+          responseId: response.id,
+          submittedAt: response.submitted_at || submittedAt,
+          resultUrl: `${appBaseUrl()}/result/${response.result_token}`,
+        })
+      : {
+          respondent: { ok: false, error: "" },
+          client: { ok: false, error: "" },
+        };
 
     const emailPatch: Record<string, string> = {};
     if (mailResult.respondent.ok) emailPatch.respondent_email_sent_at = new Date().toISOString();
