@@ -209,6 +209,13 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
         <button type="submit" className="button cta-yellow refolmo-submit">
           詳しい診断結果を見る
         </button>
+        <p className="refolmo-policy-note">
+          ご登録前に
+          <a href="https://remed.refolmo.com/library/MTA0NjM1" target="_blank" rel="noopener noreferrer">
+            プライバシーポリシー
+          </a>
+          をご確認ください。
+        </p>
       </form>
     </section>
   );
