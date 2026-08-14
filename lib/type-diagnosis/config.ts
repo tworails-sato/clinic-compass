@@ -36,6 +36,7 @@ export type TypeDiagnosisConfig = {
   respondentType: RespondentType;
   title: string;
   featureLabels: Record<string, string>;
+  featureDescriptions?: Record<string, string>;
   auxiliaryLabels: Record<string, string>;
   features: Record<string, number[]>;
   auxiliaries: Record<string, number[] | { inverseAverageOf: number[] }>;
@@ -110,6 +111,14 @@ export const doctorTypeConfig: TypeDiagnosisConfig = {
     patient: "患者価値力",
     organization: "組織育成力",
     structure: "構造経営力",
+  },
+  featureDescriptions: {
+    vision: "医院の理念・診療方針・今後の方向性を描き、スタッフや患者対応に落とし込む力です。",
+    market: "地域ニーズや患者層を把握し、自院の特徴や重点領域を外部に伝える力です。",
+    operations: "予約・受付・診察・会計などの日々の運営を、無理なく回る形に整える力です。",
+    patient: "患者への説明、対応品質、安全管理を通じて、安心して受診できる体験をつくる力です。",
+    organization: "採用・定着・育成・相談しやすさなど、人とチームを育てる力です。",
+    structure: "権限移譲、情報管理、事業継続、改善の仕組みを整え、院長一人に依存しない経営体制をつくる力です。",
   },
   auxiliaryLabels: {
     numbers: "数字管理力",
@@ -292,6 +301,14 @@ export const managerTypeConfig: TypeDiagnosisConfig = {
     policy: "方針翻訳力",
     execution: "実行推進力",
     control: "管理統制力",
+  },
+  featureDescriptions: {
+    field: "患者導線、待ち時間、人員配置など、現場で起きている状況を具体的につかむ力です。",
+    workflow: "業務手順、役割分担、判断範囲を整理し、誰でも動きやすい運営に整える力です。",
+    organization: "スタッフの負荷、教育、情報共有、相談しやすさを整え、チームを支える力です。",
+    policy: "院長の方針や判断の背景を現場に伝え、現場の課題を院長へ整理して橋渡しする力です。",
+    execution: "課題を整理し、担当者と期限を決めて改善を実行に移す力です。",
+    control: "数値、請求、個人情報、労務、トラブル対応など、医院運営の守りを管理する力です。",
   },
   auxiliaryLabels: {
     directorCoordination: "院長連携力",

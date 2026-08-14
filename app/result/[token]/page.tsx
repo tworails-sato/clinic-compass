@@ -120,7 +120,7 @@ export default async function PublicResultPage({ params }: { params: Promise<{ t
               この結果は、回答内容をもとに医院経営のテーマ別傾向を整理したものです。スコアだけで良し悪しを判断するのではなく、具体的なアクションを考える入口としてご確認ください。
             </p>
           </section>
-          <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} />
+          <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} showShare />
 
           <div className="result-grid">
             <section className="result-card chart-card">

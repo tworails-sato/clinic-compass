@@ -156,7 +156,7 @@ export default function ResultPage() {
             </>
           ) : (
             <div id="detailed-result">
-              <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} />
+              <TypeDiagnosisResult result={typeDiagnosis} showMeta={false} showShare />
               <div className="result-grid">
                 <section className="result-card chart-card">
                   <div className="card-heading">

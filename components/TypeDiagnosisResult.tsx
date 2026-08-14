@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getTypeDefinition,
   getTypeDiagnosisConfig,
@@ -13,6 +13,7 @@ type Props = {
   showMeta?: boolean;
   showStatusAndMaturity?: boolean;
   showCalculatedAt?: boolean;
+  showShare?: boolean;
 };
 
 const animalIcons: Record<string, string> = {
@@ -41,8 +42,17 @@ export function TypeDiagnosisResult({
   showMeta = true,
   showStatusAndMaturity = showMeta,
   showCalculatedAt = showMeta,
+  showShare = false,
 }: Props) {
   const [iconFailed, setIconFailed] = useState(false);
+  const [shareHref, setShareHref] = useState("");
+
+  useEffect(() => {
+    if (!showShare || !result) return;
+    const text = `院長コンパスを受けました。私の医院経営タイプは「${result.mainTypeLabel}」でした。`;
+    const url = typeof window !== "undefined" ? window.location.href : "https://clinic.ceo-sherpa.com/";
+    setShareHref(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
+  }, [result, showShare]);
 
   if (!result) return null;
 
@@ -52,6 +62,7 @@ export function TypeDiagnosisResult({
   const featureRows = Object.entries(config.featureLabels).map(([key, label]) => ({
     key,
     label,
+    description: config.featureDescriptions?.[key] ?? "",
     score: result.featureScores[key] ?? 0,
   }));
   const auxiliaryRows = Object.entries(config.auxiliaryLabels).map(([key, label]) => ({
@@ -132,6 +143,15 @@ export function TypeDiagnosisResult({
         )}
       </div>
 
+      {showShare && shareHref && (
+        <div className="type-share-actions">
+          <a className="type-share-x" href={shareHref} target="_blank" rel="noopener noreferrer">
+            Xでタイプ結果をシェア
+          </a>
+          <p>※シェアされるのはタイプ名のみです。スコアや詳細結果は含まれません。</p>
+        </div>
+      )}
+
       {!compact && (
         <>
           <div className="type-score-block">
@@ -139,7 +159,15 @@ export function TypeDiagnosisResult({
             <div className="type-feature-list">
               {featureRows.map((row) => (
                 <div key={row.key}>
-                  <span>{row.label}</span>
+                  <span className="type-feature-label">
+                    {row.label}
+                    {row.description && (
+                      <details className="type-guide">
+                        <summary aria-label={`${row.label}の解説`}>?</summary>
+                        <p>{row.description}</p>
+                      </details>
+                    )}
+                  </span>
                   <i>
                     <b style={{ width: `${Math.max(0, Math.min(100, (row.score / 5) * 100))}%` }} />
                   </i>
