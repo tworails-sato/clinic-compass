@@ -61,6 +61,7 @@ type Props = {
 export function RefolmoRegistrationGate({ onSuccess }: Props) {
   const [scriptLoadCount, setScriptLoadCount] = useState(0);
   const [formReady, setFormReady] = useState(false);
+  const [registrationNotice, setRegistrationNotice] = useState("");
 
   useEffect(() => {
     const $ = window.jQuery || window.$;
@@ -79,7 +80,10 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
     form.off("submit.refolmoCompass");
     form.on("submit.refolmoCompass", () => {
       $(".valid_error").each((_, element) => element.remove());
+      setRegistrationNotice("");
       let nexproPostResult = false;
+      let shouldUnlockDetails = false;
+      let noticeBeforeUnlock = "";
 
       try {
         const formElement = form.get(0);
@@ -97,13 +101,22 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
           .done((data) => {
             if (data.status === "OK") {
               nexproPostResult = true;
+              shouldUnlockDetails = true;
             } else {
-              console.warn("[clinic-compass] Unknown REFOLMO registration status");
+              shouldUnlockDetails = true;
+              noticeBeforeUnlock = "登録処理の確認に時間がかかっています。診断結果の表示へ進みます。";
+              console.warn("[clinic-compass] Unknown REFOLMO registration status", data);
             }
           })
           .fail((data) => {
             const json = data.responseJSON;
             if (json?.status === "NG" && json.errors) {
+              const isDuplicate = hasRegisteredEmailError(json.errors);
+              shouldUnlockDetails = true;
+              noticeBeforeUnlock = isDuplicate
+                ? "このアドレスは登録されています。診断結果の表示へ進みます。"
+                : "登録処理で確認が必要な項目がありました。診断結果の表示へ進みます。";
+              console.warn("[clinic-compass] REFOLMO registration rejected", json.errors);
               Object.entries(json.errors).forEach(([key, message]) => {
                 if (key === "base") {
                   form.append(`<p class='valid_error'><small><strong>${escapeHtml(message)}</strong></small></p>`);
@@ -114,19 +127,29 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
                 }
               });
             } else {
-              console.error("[clinic-compass] Unknown REFOLMO registration error");
+              shouldUnlockDetails = true;
+              noticeBeforeUnlock = "登録処理の確認に時間がかかっています。診断結果の表示へ進みます。";
+              console.error("[clinic-compass] Unknown REFOLMO registration error", data);
             }
           });
       } catch (error) {
         console.error("[clinic-compass] REFOLMO registration failed", error);
+        shouldUnlockDetails = true;
+        noticeBeforeUnlock = "登録処理の確認に時間がかかっています。診断結果の表示へ進みます。";
       }
 
-      if (nexproPostResult) {
-        onSuccess({
+      if (shouldUnlockDetails || nexproPostResult) {
+        const profile = {
           email: String($("#profile_email").val() ?? ""),
           name: String($("#profile_name").val() ?? ""),
           clinic: String($("#profile_company_name").val() ?? ""),
-        });
+        };
+        if (noticeBeforeUnlock) {
+          setRegistrationNotice(noticeBeforeUnlock);
+          window.setTimeout(() => onSuccess(profile), 700);
+        } else {
+          onSuccess(profile);
+        }
       }
 
       return false;
@@ -159,6 +182,7 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
       </ul>
 
       {!formReady && <p className="hint">登録フォームを読み込んでいます。</p>}
+      {registrationNotice && <p className="refolmo-status-note">{registrationNotice}</p>}
 
       <form
         className="new_mypage_campaign_apply_embedded_form refolmo-form"
@@ -228,4 +252,21 @@ function escapeHtml(value: string) {
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
     .replaceAll("'", "&#039;");
+}
+
+function hasRegisteredEmailError(errors: Record<string, string>) {
+  return Object.entries(errors).some(([key, message]) => {
+    const target = `${key} ${message}`.toLowerCase();
+    const isEmailField = target.includes("email") || target.includes("メール") || target.includes("mail");
+    return (
+      isEmailField &&
+      (target.includes("登録") ||
+        target.includes("既に") ||
+        target.includes("すでに") ||
+        target.includes("存在") ||
+        target.includes("already") ||
+        target.includes("taken") ||
+        target.includes("duplicate"))
+    );
+  });
 }
