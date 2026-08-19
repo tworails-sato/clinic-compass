@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/admin/auth-actions";
 import { AdminDraftDeleteForm } from "@/components/AdminDraftDeleteForm";
-import { formatDate, listDrafts, participantLabel } from "@/lib/admin/data";
+import { formatDate, listDrafts, listPendingRegistrationResponses, participantLabel } from "@/lib/admin/data";
 import { requireAdminUser } from "@/lib/admin/session";
 import { hasSupabaseEnv } from "@/lib/supabase/rest";
 
@@ -28,6 +28,8 @@ export default async function AdminDraftsPage({ searchParams }: { searchParams?:
   await requireAdminUser();
   const params = await searchParams;
   const drafts = await listDrafts();
+  const pendingRegistrationResponses = await listPendingRegistrationResponses();
+  const totalPending = drafts.length + pendingRegistrationResponses.length;
 
   return (
     <main className="admin">
@@ -52,12 +54,12 @@ export default async function AdminDraftsPage({ searchParams }: { searchParams?:
             <p className="eyebrow teal">DRAFT ASSESSMENTS</p>
             <h1>途中保存の受検者</h1>
             <p>
-              未完了の途中保存データのみ表示しています。完了済みの途中保存データは、この一覧には表示されません。
+              未完了の途中保存データと、回答完了後に会員登録前で離脱したデータを表示しています。
             </p>
           </div>
           <div className="draft-count-card">
-            <span>未完了</span>
-            <b>{drafts.length}</b>
+            <span>未完了・登録前</span>
+            <b>{totalPending}</b>
           </div>
         </div>
 
@@ -102,6 +104,54 @@ export default async function AdminDraftsPage({ searchParams }: { searchParams?:
                 </article>
               );
             })}
+          </div>
+        )}
+
+        <div className="admin-drafts-title pending-registration-title">
+          <div>
+            <p className="eyebrow teal">PENDING REGISTRATION</p>
+            <h2>回答完了後・会員登録前のデータ</h2>
+            <p>
+              診断回答は完了していますが、詳細結果表示前のREFOLMO Med会員登録が未完了のデータです。
+            </p>
+          </div>
+          <div className="draft-count-card">
+            <span>登録前</span>
+            <b>{pendingRegistrationResponses.length}</b>
+          </div>
+        </div>
+
+        {pendingRegistrationResponses.length === 0 ? (
+          <div className="admin-empty-small draft-empty">会員登録前で離脱した回答データはありません。</div>
+        ) : (
+          <div className="draft-table pending-registration-table">
+            <div className="draft-table-row draft-table-header">
+              <span>受検者</span>
+              <span>区分</span>
+              <span>回答状況</span>
+              <span>回答日時</span>
+              <span>総合スコア</span>
+              <span>状態</span>
+            </div>
+            {pendingRegistrationResponses.map((response) => (
+              <article className="draft-table-row" key={response.id}>
+                <div>
+                  <strong>{response.name || "会員登録前"}</strong>
+                  <small>{response.clinic_name || "医院名未登録"}</small>
+                  <small>{response.email || "メール未登録"}</small>
+                </div>
+                <span>{participantLabel(response.participant_type)}</span>
+                <div className="draft-progress">
+                  <div>
+                    <i style={{ width: "100%" }} />
+                  </div>
+                  <small>36/36（回答完了）</small>
+                </div>
+                <span>{formatDate(response.submitted_at)}</span>
+                <span>{Number(response.total_score).toFixed(1)}</span>
+                <span className="draft-status-pill">会員登録前</span>
+              </article>
+            ))}
           </div>
         )}
       </section>

@@ -75,7 +75,17 @@ const draftSelect =
   "id,draft_id,participant_type,name,email,clinic_name,answered_count,total_questions,status,created_at,updated_at,last_accessed_at,completed_at,completed_response_id";
 
 export async function listResponses(): Promise<AdminResponse[]> {
-  return supabaseAdminFetch(`/rest/v1/clinic_assessment_responses?deleted_at=is.null&select=${responseSelect}&order=submitted_at.desc`) as Promise<AdminResponse[]>;
+  const rows = (await supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_responses?deleted_at=is.null&select=${responseSelect}&order=submitted_at.desc`,
+  )) as AdminResponse[];
+  return rows.filter(isRegisteredResponse);
+}
+
+export async function listPendingRegistrationResponses(): Promise<AdminResponse[]> {
+  const rows = (await supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_responses?deleted_at=is.null&select=${responseSelect}&order=submitted_at.desc&limit=50`,
+  )) as AdminResponse[];
+  return rows.filter((row) => !isRegisteredResponse(row));
 }
 
 export async function listDrafts(options: { includeCompleted?: boolean } = {}): Promise<AdminDraft[]> {
@@ -89,7 +99,8 @@ export async function getResponse(responseId: string): Promise<AdminResponse | n
   const rows = (await supabaseAdminFetch(
     `/rest/v1/clinic_assessment_responses?id=eq.${encodeURIComponent(responseId)}&deleted_at=is.null&select=${responseSelect}&limit=1`,
   )) as AdminResponse[];
-  return rows[0] ?? null;
+  const row = rows[0] ?? null;
+  return row && isRegisteredResponse(row) ? row : null;
 }
 
 export async function getAnswers(responseId: string): Promise<AdminAnswer[]> {
@@ -128,6 +139,14 @@ export async function getAverageComparisonForResponse(
 
 export function participantLabel(type: AdminResponse["participant_type"]) {
   return type === "director" ? "院長" : "事務長";
+}
+
+export function isRegisteredResponse(row: Pick<AdminResponse, "name" | "email" | "clinic_name">) {
+  const name = String(row.name ?? "").trim();
+  const email = String(row.email ?? "").trim();
+  const clinic = String(row.clinic_name ?? "").trim();
+
+  return Boolean(email && name && clinic && name !== "会員登録前" && clinic !== "会員登録前");
 }
 
 export function formatDate(date: string) {

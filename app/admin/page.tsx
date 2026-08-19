@@ -15,6 +15,7 @@ import {
   getReport,
   getTypeResult,
   listDrafts,
+  listPendingRegistrationResponses,
   listResponses,
   normalizePriorities,
   normalizeScores,
@@ -49,6 +50,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
 
   const responses = await listResponses();
   const drafts = await listDrafts();
+  const pendingRegistrationResponses = await listPendingRegistrationResponses();
   const responseTypeResults = await Promise.all(
     responses.map(async (row) => {
       const saved = await getTypeResult(row.id);
@@ -81,7 +83,7 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
         <div className="admin-head-actions">
           <span>管理画面</span>
           <Link className="admin-head-link" href="/admin/drafts">
-            途中保存一覧{drafts.length > 0 ? `（${drafts.length}）` : ""}
+            途中保存一覧{drafts.length + pendingRegistrationResponses.length > 0 ? `（${drafts.length + pendingRegistrationResponses.length}）` : ""}
           </Link>
           <form action={logoutAction}>
             <button type="submit">ログアウト</button>
