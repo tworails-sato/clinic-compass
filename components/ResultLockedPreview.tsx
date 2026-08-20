@@ -19,8 +19,8 @@ export function ResultLockedPreview({ scores, improvementHintCount }: Props) {
   const previewScores = scores.length > 0 ? scores : fallbackScores;
   const headline =
     improvementHintCount > 0
-      ? `${improvementHintCount}つのポイントが見つかりました！`
-      : "さらに伸ばせるポイントが見つかりました！";
+      ? `医院経営を伸ばすための、${improvementHintCount}つのポイントが見つかりました！`
+      : "医院経営をさらに伸ばせるポイントが見つかりました！";
 
   return (
     <section className="locked-result-card">
