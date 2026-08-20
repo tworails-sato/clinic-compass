@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { RefolmoRegistrationGate, type RefolmoRegistrationProfile } from "@/components/RefolmoRegistrationGate";
+import { ResultLockedPreview } from "@/components/ResultLockedPreview";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 import type { ThemeComparison } from "@/lib/score-comparison";
-import { calculateTypeDiagnosis, getTypeDefinition, type TypeDiagnosisResultData } from "@/lib/type-diagnosis/engine";
+import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
 const feedbackUrl =
   process.env.NEXT_PUBLIC_FEEDBACK_URL ||
@@ -52,6 +53,7 @@ export default function ResultPage() {
   const grouped = useMemo(() => getGroupedScores(profile, answers), [profile, answers]);
   const total = getTotalScore(grouped);
   const priorities = getPriorities(grouped);
+  const improvementHintCount = useMemo(() => grouped.filter((row) => row.score < 3).length, [grouped]);
   const typeDiagnosis = useMemo(
     () => (profile.type ? calculateTypeDiagnosis(profile.type, answers, total) : null),
     [profile.type, answers, total],
@@ -124,6 +126,8 @@ export default function ResultPage() {
   }, [profile]);
 
   if (!profile.type) return null;
+  const showRegisteredProfile = detailsUnlocked && profile.name && profile.name !== "会員登録前";
+  const showRegisteredClinic = detailsUnlocked && profile.clinic && profile.clinic !== "会員登録前";
 
   return (
     <>
@@ -132,9 +136,9 @@ export default function ResultPage() {
         <section className="result-hero">
           <div className="wrap">
             <p className="eyebrow">ASSESSMENT RESULT</p>
-            <h1>{profile.name ? `${profile.name}さんの診断結果` : "診断結果プレビュー"}</h1>
+            <h1>{showRegisteredProfile ? `${profile.name}さんの診断結果` : "診断結果プレビュー"}</h1>
             <p>
-              {profile.clinic ? `${profile.clinic} ／ ` : ""}
+              {showRegisteredClinic ? `${profile.clinic} ／ ` : ""}
               {roles[profile.type as ParticipantType][0]}
             </p>
             <div className="total">
@@ -151,7 +155,10 @@ export default function ResultPage() {
           </section>
           {!detailsUnlocked ? (
             <>
-              <TypeDiagnosisTeaser result={typeDiagnosis} />
+              <ResultLockedPreview
+                scores={grouped}
+                improvementHintCount={improvementHintCount}
+              />
               <RefolmoRegistrationGate onSuccess={unlockDetails} />
             </>
           ) : (
@@ -249,29 +256,6 @@ export default function ResultPage() {
         </div>
       </main>
     </>
-  );
-}
-
-function TypeDiagnosisTeaser({ result }: { result: TypeDiagnosisResultData | null }) {
-  if (!result) return null;
-
-  const definition = getTypeDefinition(result.respondentType, result.mainTypeKey);
-
-  return (
-    <section className="type-teaser-card">
-      <p className="eyebrow teal">TYPE PREVIEW</p>
-      <div className="type-teaser-main">
-        {definition?.iconPath && <img src={definition.iconPath} alt="" />}
-        <div>
-          <p>あなたの医院経営タイプは</p>
-          <h2>「{result.mainTypeLabel}」です</h2>
-          <span>{definition?.summary ?? "回答傾向から医院経営スタイルを整理した参考タイプです。"}</span>
-        </div>
-      </div>
-      <p className="type-teaser-note">
-        詳しい6領域スコア・レーダーチャート・あなただけの診断レポートを見るには、REFOLMO Medの会員登録が必要です。
-      </p>
-    </section>
   );
 }
 

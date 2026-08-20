@@ -231,7 +231,7 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
           </div>
         </div>
         <button type="submit" className="button cta-yellow refolmo-submit">
-          詳しい診断結果を見る
+          30秒で無料登録して結果を見る
         </button>
         <p className="refolmo-policy-note">
           ご登録前に
