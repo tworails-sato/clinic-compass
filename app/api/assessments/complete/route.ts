@@ -8,16 +8,11 @@ import {
   getTotalScore,
   Profile,
 } from "@/lib/assessment";
-import { sendCompletionEmails } from "@/lib/email/resend";
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
 import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
 function questionSetCode(type: Profile["type"]) {
   return type === "director" ? "director-v1" : "office-manager-v1";
-}
-
-function appBaseUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL || "https://clinic.ceo-sherpa.com").replace(/\/$/, "");
 }
 
 function feedbackUrl() {
@@ -28,10 +23,6 @@ function feedbackUrl() {
     process.env.NEXT_PUBLIC_TIMEREX_URL ||
     "https://app.spirinc.com/t/jjbpl6BvWT0_8ErSb6ZJI/as/kJSSa_PKI5d9jCQGSKjA7/confirm"
   );
-}
-
-function hasContactProfile(profile: Profile) {
-  return Boolean(profile.name?.trim() && profile.email?.trim() && profile.clinic?.trim());
 }
 
 export async function POST(request: Request) {
@@ -65,9 +56,9 @@ export async function POST(request: Request) {
         question_set_code: questionSetCode(profile.type),
         question_set_version: 1,
         participant_type: profile.type,
-        name: profile.name?.trim() || "会員登録前",
-        email: profile.email?.trim() || "",
-        clinic_name: profile.clinic?.trim() || "会員登録前",
+        name: "会員登録前",
+        email: "",
+        clinic_name: "会員登録前",
         basic_info: {
           referral_source: profile.referralSource ?? "",
           referrer_name: profile.referrerName ?? "",
@@ -145,38 +136,6 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         console.error("[clinic-compass] Type diagnosis save failed", error);
-      }
-    }
-
-    const mailResult = hasContactProfile(profile)
-      ? await sendCompletionEmails({
-          profile,
-          responseId: response.id,
-          submittedAt: response.submitted_at || submittedAt,
-          resultUrl: `${appBaseUrl()}/result/${response.result_token}`,
-        })
-      : {
-          respondent: { ok: false, error: "" },
-          client: { ok: false, error: "" },
-        };
-
-    const emailPatch: Record<string, string> = {};
-    if (mailResult.respondent.ok) emailPatch.respondent_email_sent_at = new Date().toISOString();
-    if (mailResult.respondent.error) emailPatch.respondent_email_error = mailResult.respondent.error;
-    if (mailResult.client.ok) emailPatch.client_email_sent_at = new Date().toISOString();
-    if (mailResult.client.error) emailPatch.client_email_error = mailResult.client.error;
-
-    if (Object.keys(emailPatch).length > 0) {
-      try {
-        await supabaseAdminFetch(`/rest/v1/clinic_assessment_responses?id=eq.${encodeURIComponent(response.id)}`, {
-          method: "PATCH",
-          headers: {
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify(emailPatch),
-        });
-      } catch (error) {
-        console.error("[clinic-compass] Email status patch failed", error);
       }
     }
 

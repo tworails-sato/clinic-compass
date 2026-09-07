@@ -22,7 +22,7 @@ export default function QuestionsPage() {
       return;
     }
 
-    setProfile(JSON.parse(savedProfile));
+    setProfile(stripContactProfile(JSON.parse(savedProfile) as Profile));
     const savedAnswers = window.sessionStorage.getItem(storageKeys.answers) ?? window.localStorage.getItem(storageKeys.answers);
     if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
   }, [router]);
@@ -206,6 +206,15 @@ export default function QuestionsPage() {
       </main>
     </>
   );
+}
+
+function stripContactProfile(profile: Profile): Profile {
+  return {
+    ...profile,
+    name: "",
+    email: "",
+    clinic: "",
+  };
 }
 
 function getOrCreateDraftId() {

@@ -14,7 +14,10 @@ export default function StartPage() {
 
   useEffect(() => {
     const saved = window.sessionStorage.getItem(storageKeys.profile) ?? window.localStorage.getItem(storageKeys.profile);
-    if (saved) setProfile({ ...emptyProfile, ...JSON.parse(saved) });
+    if (saved) {
+      const parsed = { ...emptyProfile, ...JSON.parse(saved) } as Profile;
+      setProfile(stripContactProfile(parsed));
+    }
     setHasDraft(Boolean(window.localStorage.getItem(storageKeys.answers) || window.localStorage.getItem(storageKeys.draftId)));
   }, []);
 
@@ -34,18 +37,20 @@ export default function StartPage() {
   }, [profile]);
 
   function updateProfile(next: Partial<Profile>) {
-    setProfile((current) => ({ ...current, ...next }));
+    setProfile((current) => stripContactProfile({ ...current, ...next }));
     setError("");
   }
 
   function start() {
-    if (!profile.type) {
+    const nextProfile = stripContactProfile(profile);
+
+    if (!nextProfile.type) {
       setError("対象者区分を選択してください。");
       return;
     }
 
-    window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(profile));
-    window.localStorage.setItem(storageKeys.profile, JSON.stringify(profile));
+    window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(nextProfile));
+    window.localStorage.setItem(storageKeys.profile, JSON.stringify(nextProfile));
     window.sessionStorage.removeItem(storageKeys.answers);
     window.localStorage.removeItem(storageKeys.answers);
     router.push("/questions");
@@ -62,7 +67,7 @@ export default function StartPage() {
       return;
     }
 
-    const draftProfile = { ...emptyProfile, ...JSON.parse(savedProfile) } as Profile;
+    const draftProfile = stripContactProfile({ ...emptyProfile, ...JSON.parse(savedProfile) } as Profile);
     if (!draftProfile.type) {
       setProfile(draftProfile);
       setError("途中保存データを読み込みました。対象者区分を選択してから設問へ進んでください。");
@@ -143,4 +148,13 @@ async function saveDraft(draftId: string, profile: Profile, answers: Record<numb
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ action: "save", draftId, profile, answers }),
   });
+}
+
+function stripContactProfile(profile: Profile): Profile {
+  return {
+    ...profile,
+    name: "",
+    email: "",
+    clinic: "",
+  };
 }
