@@ -46,6 +46,27 @@ export async function deleteResponseAction(formData: FormData) {
   redirect("/admin?deleted=1");
 }
 
+export async function deleteResponsesAction(formData: FormData) {
+  await requireAdminUser();
+  const responseIds = formData
+    .getAll("response_ids")
+    .map((value) => String(value).trim())
+    .filter((value) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value));
+
+  if (responseIds.length === 0) redirect("/admin");
+
+  await supabaseAdminFetch(`/rest/v1/clinic_assessment_responses?id=in.(${responseIds.join(",")})`, {
+    method: "PATCH",
+    headers: {
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ deleted_at: new Date().toISOString() }),
+  });
+
+  revalidatePath("/admin");
+  redirect(`/admin?deleted=${responseIds.length}`);
+}
+
 export async function deleteDraftAction(formData: FormData) {
   await requireAdminUser();
   const draftId = String(formData.get("draft_id") ?? "");

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { logoutAction } from "@/app/admin/auth-actions";
+import { AdminBulkDeleteForm } from "@/components/AdminBulkDeleteForm";
 import { AdminDeleteForm } from "@/components/AdminDeleteForm";
 import { AdminReportEditor } from "@/components/AdminReportEditor";
 import { AverageComparison } from "@/components/AverageComparison";
@@ -100,14 +101,16 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
           </Link>
           {params?.deleted && <div className="saved block">削除しました</div>}
           {responses.length === 0 && <p className="admin-empty-small">まだ回答データがありません。</p>}
-          {responses.map((item) => (
-            <ResponseListRow
-              item={item}
-              key={item.id}
-              selected={selected?.id === item.id}
-              typeResult={typeResultByResponseId.get(item.id) ?? null}
-            />
-          ))}
+          <AdminBulkDeleteForm count={responses.length}>
+            {responses.map((item) => (
+              <ResponseListRow
+                item={item}
+                key={item.id}
+                selected={selected?.id === item.id}
+                typeResult={typeResultByResponseId.get(item.id) ?? null}
+              />
+            ))}
+          </AdminBulkDeleteForm>
         </aside>
 
         <section className="admin-detail">
@@ -205,24 +208,29 @@ function ResponseListRow({
   const definition = typeResult ? getTypeDefinition(typeResult.respondentType, typeResult.mainTypeKey) : null;
 
   return (
-    <Link className={`response-row ${selected ? "selected" : ""}`} href={`/admin?id=${item.id}`}>
-      <strong>{item.name}</strong>
-      <span>
-        {item.clinic_name} ・ {participantLabel(item.participant_type)}
-      </span>
-      {typeResult ? (
-        <div className="admin-type-list-summary">
-          {definition?.iconPath ? <img src={definition.iconPath} alt="" /> : <i>🧭</i>}
-          <div>
-            <b>{typeResult.mainTypeLabel}</b>
-            <span>サブ：{typeResult.subTypeLabel ?? "未判定"}</span>
-            {typeResult.calculatedAt && <small>判定日時：{formatDate(typeResult.calculatedAt)}</small>}
+    <article className={`response-row bulk ${selected ? "selected" : ""}`}>
+      <label className="response-check">
+        <input type="checkbox" name="response_ids" value={item.id} aria-label={`${item.name}さんを削除対象に選択`} />
+      </label>
+      <Link className="response-row-link" href={`/admin?id=${item.id}`}>
+        <strong>{item.name}</strong>
+        <span>
+          {item.clinic_name} ・ {participantLabel(item.participant_type)}
+        </span>
+        {typeResult ? (
+          <div className="admin-type-list-summary">
+            {definition?.iconPath ? <img src={definition.iconPath} alt="" /> : <i>🧭</i>}
+            <div>
+              <b>{typeResult.mainTypeLabel}</b>
+              <span>サブ：{typeResult.subTypeLabel ?? "未判定"}</span>
+              {typeResult.calculatedAt && <small>判定日時：{formatDate(typeResult.calculatedAt)}</small>}
+            </div>
           </div>
-        </div>
-      ) : (
-        <span>12タイプ：未判定</span>
-      )}
-      <small>{formatDate(item.submitted_at)}</small>
-    </Link>
+        ) : (
+          <span>12タイプ：未判定</span>
+        )}
+        <small>{formatDate(item.submitted_at)}</small>
+      </Link>
+    </article>
   );
 }
