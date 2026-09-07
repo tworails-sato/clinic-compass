@@ -103,8 +103,8 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
               nexproPostResult = true;
               shouldUnlockDetails = true;
             } else {
-              shouldUnlockDetails = true;
-              noticeBeforeUnlock = "登録処理の確認に時間がかかっています。診断結果の表示へ進みます。";
+              shouldUnlockDetails = false;
+              noticeBeforeUnlock = "会員登録を完了できませんでした。入力内容をご確認のうえ、もう一度お試しください。";
               console.warn("[clinic-compass] Unknown REFOLMO registration status", data);
             }
           })
@@ -112,10 +112,10 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
             const json = data.responseJSON;
             if (json?.status === "NG" && json.errors) {
               const isDuplicate = hasRegisteredEmailError(json.errors);
-              shouldUnlockDetails = true;
+              shouldUnlockDetails = isDuplicate;
               noticeBeforeUnlock = isDuplicate
                 ? "このアドレスは登録されています。診断結果の表示へ進みます。"
-                : "登録処理で確認が必要な項目がありました。診断結果の表示へ進みます。";
+                : "会員登録を完了できませんでした。入力内容をご確認のうえ、もう一度お試しください。";
               console.warn("[clinic-compass] REFOLMO registration rejected", json.errors);
               Object.entries(json.errors).forEach(([key, message]) => {
                 if (key === "base") {
@@ -127,29 +127,29 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
                 }
               });
             } else {
-              shouldUnlockDetails = true;
-              noticeBeforeUnlock = "登録処理の確認に時間がかかっています。診断結果の表示へ進みます。";
+              shouldUnlockDetails = false;
+              noticeBeforeUnlock = "会員登録を完了できませんでした。時間をおいて、もう一度お試しください。";
               console.error("[clinic-compass] Unknown REFOLMO registration error", data);
             }
           });
       } catch (error) {
         console.error("[clinic-compass] REFOLMO registration failed", error);
-        shouldUnlockDetails = true;
-        noticeBeforeUnlock = "登録処理の確認に時間がかかっています。診断結果の表示へ進みます。";
+        shouldUnlockDetails = false;
+        noticeBeforeUnlock = "会員登録を完了できませんでした。時間をおいて、もう一度お試しください。";
+      }
+
+      const profile = {
+        email: String($("#profile_email").val() ?? ""),
+        name: String($("#profile_name").val() ?? ""),
+        clinic: String($("#profile_company_name").val() ?? ""),
+      };
+
+      if (noticeBeforeUnlock) {
+        setRegistrationNotice(noticeBeforeUnlock);
       }
 
       if (shouldUnlockDetails || nexproPostResult) {
-        const profile = {
-          email: String($("#profile_email").val() ?? ""),
-          name: String($("#profile_name").val() ?? ""),
-          clinic: String($("#profile_company_name").val() ?? ""),
-        };
-        if (noticeBeforeUnlock) {
-          setRegistrationNotice(noticeBeforeUnlock);
-          window.setTimeout(() => onSuccess(profile), 700);
-        } else {
-          onSuccess(profile);
-        }
+        window.setTimeout(() => onSuccess(profile), noticeBeforeUnlock ? 700 : 0);
       }
 
       return false;
@@ -191,7 +191,7 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
         acceptCharset="UTF-8"
         method="post"
       >
-        <input type="hidden" name="nextpro_endpoint_url" id="nextpro_endpoint_url" value="https://remed.refolmo.com/api/v1/campaign-applies/OTU3NTY%253D" autoComplete="off" />
+        <input type="hidden" name="nextpro_endpoint_url" id="nextpro_endpoint_url" value="https://remed.refolmo.com/api/v1/campaign-applies/OTgxNDA%253D" autoComplete="off" />
         <input autoComplete="off" type="hidden" name="mypage_campaign_apply_embedded_form[is_profile]" id="mypage_campaign_apply_embedded_form_is_profile" />
         <input type="hidden" name="enterprise_code" id="enterprise_code" value="media-remed" autoComplete="off" />
         <div className="floating-labels pt-3">
@@ -199,7 +199,7 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
           <input autoComplete="off" type="hidden" name="profile[id]" id="profile_id" />
           <input value="ja" autoComplete="off" type="hidden" name="profile[language]" id="profile_language" readOnly />
           <input value="Asia/Tokyo" autoComplete="off" type="hidden" name="profile[time_zone]" id="profile_time_zone" readOnly />
-          <input type="hidden" name="authenticity_token" id="authenticity_token" value="bZQ3EU8wTg==--vK//l0JXOLVc9M3S--Z+9L3pi7ZGYdyvRGRqAtaA==" autoComplete="off" />
+          <input type="hidden" name="authenticity_token" id="authenticity_token" value="zw5LRYappg==--jcB1I5r1DnGO5uW+--RbOQWEg59JS8VVmhHGrvlA==" autoComplete="off" />
 
           <div className="form-group nexpro_form_text required">
             <label htmlFor="profile_email">メールアドレス</label>
@@ -220,10 +220,11 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
             <label htmlFor="profile_positioning">あなたのお立場に最も近いものをお選びください</label>
             <select name="profile[propaties][positioning]" id="profile_positioning" required>
               <option value="">選択してください。</option>
-              <option value="院長・理事長・経営者">院長・理事長・経営者</option>
-              <option value="役員・事務長・管理職">役員・事務長・管理職</option>
+              <option value="院長・理事長">院長・理事長</option>
+              <option value="事務長・管理職">事務長・管理職</option>
               <option value="医師・歯科医師">医師・歯科医師</option>
               <option value="医療従事者・スタッフ">医療従事者・スタッフ</option>
+              <option value="薬剤師">薬剤師</option>
               <option value="医療関連企業の方">医療関連企業の方</option>
               <option value="その他">その他</option>
             </select>
