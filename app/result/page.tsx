@@ -9,6 +9,7 @@ import { RefolmoRegistrationGate, type RefolmoRegistrationProfile } from "@/comp
 import { ResultLockedPreview } from "@/components/ResultLockedPreview";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
+import { TypeDiagnosisTeaser } from "@/components/TypeDiagnosisTeaser";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 import type { ThemeComparison } from "@/lib/score-comparison";
@@ -155,6 +156,7 @@ export default function ResultPage() {
           </section>
           {!detailsUnlocked ? (
             <>
+              <TypeDiagnosisTeaser result={typeDiagnosis} />
               <ResultLockedPreview
                 scores={grouped}
                 improvementHintCount={improvementHintCount}

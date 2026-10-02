@@ -157,7 +157,7 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
   }, [scriptLoadCount, onSuccess]);
 
   return (
-    <section className="refolmo-gate-card">
+    <section className="refolmo-gate-card" id="refolmo-registration">
       <Script
         src="https://cdnjs.cloudflare.com/ajax/libs/jstimezonedetect/1.0.7/jstz.min.js"
         strategy="afterInteractive"
@@ -174,11 +174,34 @@ export function RefolmoRegistrationGate({ onSuccess }: Props) {
       <p className="eyebrow teal">FREE MEMBER REGISTRATION</p>
       <h2>詳しい診断結果を見るには、REFOLMO Medの会員登録が必要です</h2>
       <p className="refolmo-gate-lead">
-        簡単な情報登録で、以下がご覧いただけます。
+        REFOLMO Medは、医院経営の課題解決に役立つウェビナーや実践資料を無料で利用できる、医療経営メディアです。
       </p>
+      <div className="refolmo-gate-showcase">
+        <div className="refolmo-gate-brand">
+          <img src="/images/refolmo/logo.jpg" alt="REFOLMO Med" />
+          <strong>診断後も、医院経営の「次の一手」を学べます</strong>
+          <p>診断で見えた課題に関連する情報を、必要なタイミングで確認できます。</p>
+        </div>
+        <img className="refolmo-gate-contents" src="/images/refolmo/contents.jpg" alt="REFOLMO Medで閲覧できるコンテンツの例" />
+      </div>
+      <div className="refolmo-gate-merits">
+        <article>
+          <strong>ウェビナー視聴</strong>
+          <p>医療機関の経営・運営に役立つテーマを、実務に沿って学べます。</p>
+        </article>
+        <article>
+          <strong>実践資料をダウンロード</strong>
+          <p>組織づくり、DX、集患、採用など、医院運営に役立つ資料を利用できます。</p>
+        </article>
+        <article>
+          <strong>アーカイブをいつでも確認</strong>
+          <p>過去のウェビナーを、課題に向き合うタイミングで視聴できます。</p>
+        </article>
+      </div>
       <ul className="refolmo-gate-benefits">
+        <li>あなたのタイプの詳しい解説・特徴</li>
         <li>あなただけの詳しい診断結果（6領域スコア・レーダーチャート・強み・課題）</li>
-        <li>医療経営メディア「REFOLMO Med」のウェビナー・資料</li>
+        <li>REFOLMO Medのウェビナー・実践資料</li>
       </ul>
 
       {!formReady && <p className="hint">登録フォームを読み込んでいます。</p>}
