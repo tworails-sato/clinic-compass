@@ -13,6 +13,7 @@ import { TypeDiagnosisTeaser } from "@/components/TypeDiagnosisTeaser";
 import { Answers, emptyProfile, getGroupedScores, getPriorities, getTotalScore, Profile, roles, storageKeys } from "@/lib/assessment";
 import { ParticipantType } from "@/lib/questions";
 import type { ThemeComparison } from "@/lib/score-comparison";
+import { trackMetaCompleteRegistration } from "@/lib/meta-pixel";
 import { calculateTypeDiagnosis } from "@/lib/type-diagnosis/engine";
 
 const feedbackUrl =
@@ -113,6 +114,7 @@ export default function ResultPage() {
     window.sessionStorage.setItem(storageKeys.profile, JSON.stringify(nextProfile));
     window.localStorage.setItem(storageKeys.profile, JSON.stringify(nextProfile));
     window.sessionStorage.setItem(refolmoUnlockKey(responseId, nextProfile), "true");
+    trackMetaCompleteRegistration(responseId);
     setDetailsUnlocked(true);
     if (responseId) {
       fetch("/api/assessments/refolmo-registration", {
