@@ -27,8 +27,10 @@ export default async function AdminDraftsPage({ searchParams }: { searchParams?:
 
   await requireAdminUser();
   const params = await searchParams;
-  const drafts = await listDrafts();
-  const pendingRegistrationResponses = await listPendingRegistrationResponses();
+  const [drafts, pendingRegistrationResponses] = await Promise.all([
+    listDrafts(),
+    listPendingRegistrationResponses(),
+  ]);
   const totalPending = drafts.length + pendingRegistrationResponses.length;
 
   return (

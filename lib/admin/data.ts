@@ -24,6 +24,10 @@ export type AdminAnswer = {
   score: number;
 };
 
+type AdminAnswerWithResponseId = AdminAnswer & {
+  response_id: string;
+};
+
 export type AdminReport = {
   response_id: string;
   overall_comment?: string;
@@ -109,6 +113,24 @@ export async function getAnswers(responseId: string): Promise<AdminAnswer[]> {
   ) as Promise<AdminAnswer[]>;
 }
 
+export async function getAnswersForResponses(responseIds: string[]): Promise<Map<string, AdminAnswer[]>> {
+  const result = new Map<string, AdminAnswer[]>();
+  if (responseIds.length === 0) return result;
+
+  const ids = responseIds.map((id) => encodeURIComponent(id)).join(",");
+  const rows = (await supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_response_answers?response_id=in.(${ids})&select=response_id,id,question_number,question_text_snapshot,theme_name_snapshot,score&order=question_number.asc`,
+  )) as AdminAnswerWithResponseId[];
+
+  rows.forEach(({ response_id, ...answer }) => {
+    const answers = result.get(response_id) ?? [];
+    answers.push(answer);
+    result.set(response_id, answers);
+  });
+
+  return result;
+}
+
 export async function getReport(responseId: string): Promise<AdminReport | null> {
   const rows = (await supabaseAdminFetch(
     `/rest/v1/clinic_assessment_reports?response_id=eq.${encodeURIComponent(responseId)}&select=response_id,overall_comment,strengths_comment,priority_comment,next_actions,internal_notes&limit=1`,
@@ -121,6 +143,23 @@ export async function getTypeResult(responseId: string): Promise<TypeDiagnosisRe
     `/rest/v1/clinic_assessment_type_results?response_id=eq.${encodeURIComponent(responseId)}&select=*&limit=1`,
   )) as AdminTypeResultRow[];
   return normalizeTypeDiagnosisResult(rows[0] ?? null);
+}
+
+export async function getTypeResults(responseIds: string[]): Promise<Map<string, TypeDiagnosisResultData>> {
+  const result = new Map<string, TypeDiagnosisResultData>();
+  if (responseIds.length === 0) return result;
+
+  const ids = responseIds.map((id) => encodeURIComponent(id)).join(",");
+  const rows = (await supabaseAdminFetch(
+    `/rest/v1/clinic_assessment_type_results?response_id=in.(${ids})&select=*`,
+  )) as AdminTypeResultRow[];
+
+  rows.forEach((row) => {
+    const normalized = normalizeTypeDiagnosisResult(row);
+    if (normalized) result.set(row.response_id, normalized);
+  });
+
+  return result;
 }
 
 export async function getAverageComparisonForResponse(

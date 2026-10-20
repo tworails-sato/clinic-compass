@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminUser } from "@/lib/admin/session";
-import { formatDate, getTypeResult, listResponses, normalizePriorities, participantLabel } from "@/lib/admin/data";
+import { formatDate, getTypeResults, listResponses, normalizePriorities, participantLabel } from "@/lib/admin/data";
 import { getTypeDefinition } from "@/lib/type-diagnosis/engine";
 
 function escapeCsv(value: unknown) {
@@ -13,7 +13,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ ok: false }, { status: 401 });
 
   const rows = await listResponses();
-  const typeResults = await Promise.all(rows.map((row) => getTypeResult(row.id)));
+  const typeResults = await getTypeResults(rows.map((row) => row.id));
   const header = [
     "回答ID",
     "回答日時",
@@ -32,7 +32,7 @@ export async function GET() {
     "判定日時",
   ];
   const body = rows.map((row, index) => {
-    const typeResult = typeResults[index];
+    const typeResult = typeResults.get(row.id) ?? null;
     const definition = typeResult ? getTypeDefinition(typeResult.respondentType, typeResult.mainTypeKey) : null;
     return [
       row.id,

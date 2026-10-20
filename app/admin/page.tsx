@@ -12,9 +12,10 @@ import {
   formatDate,
   formatReferralMemo,
   getAnswers,
+  getAnswersForResponses,
   getAverageComparisonForResponse,
   getReport,
-  getTypeResult,
+  getTypeResults,
   listDrafts,
   listPendingRegistrationResponses,
   listResponses,
@@ -49,26 +50,38 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
   await requireAdminUser();
   const params = await searchParams;
 
-  const responses = await listResponses();
-  const drafts = await listDrafts();
-  const pendingRegistrationResponses = await listPendingRegistrationResponses();
-  const responseTypeResults = await Promise.all(
-    responses.map(async (row) => {
-      const saved = await getTypeResult(row.id);
-      if (saved) return saved;
-      const rowAnswers = await getAnswers(row.id);
-      return calculateTypeDiagnosis(row.participant_type, answersToRecord(rowAnswers), Number(row.total_score));
-    }),
-  );
-  const typeResultByResponseId = new Map(responses.map((row, index) => [row.id, responseTypeResults[index]]));
+  const [responses, drafts, pendingRegistrationResponses] = await Promise.all([
+    listResponses(),
+    listDrafts(),
+    listPendingRegistrationResponses(),
+  ]);
+  const typeResultByResponseId = await getTypeResults(responses.map((row) => row.id));
+  const responsesWithoutType = responses.filter((row) => !typeResultByResponseId.has(row.id));
+  if (responsesWithoutType.length > 0) {
+    const answersByResponseId = await getAnswersForResponses(responsesWithoutType.map((row) => row.id));
+    responsesWithoutType.forEach((row) => {
+      const calculated = calculateTypeDiagnosis(
+        row.participant_type,
+        answersToRecord(answersByResponseId.get(row.id) ?? []),
+        Number(row.total_score),
+      );
+      if (calculated) typeResultByResponseId.set(row.id, calculated);
+    });
+  }
   const selected = responses.find((row) => row.id === params?.id) ?? responses[0];
-  const answers = selected ? await getAnswers(selected.id) : [];
-  const report = selected ? await getReport(selected.id) : null;
-  const savedTypeDiagnosis = selected ? await getTypeResult(selected.id) : null;
-  const typeDiagnosis = selected ? savedTypeDiagnosis ?? calculateTypeDiagnosis(selected.participant_type, answersToRecord(answers), Number(selected.total_score)) : null;
   const chartScores = selected ? normalizeScores(selected.theme_scores) : [];
   const priorities = selected ? normalizePriorities(selected.priority_themes) : [];
-  const averageComparison = selected ? await getAverageComparisonForResponse(selected, chartScores) : null;
+  const [answers, report, averageComparison] = selected
+    ? await Promise.all([
+        getAnswers(selected.id),
+        getReport(selected.id),
+        getAverageComparisonForResponse(selected, chartScores),
+      ])
+    : [[], null, null];
+  const typeDiagnosis = selected
+    ? typeResultByResponseId.get(selected.id) ??
+      calculateTypeDiagnosis(selected.participant_type, answersToRecord(answers), Number(selected.total_score))
+    : null;
   const averageScores = averageComparison?.comparisons
     .filter((comparison) => comparison.averageScore !== null)
     .map((comparison) => ({ name: comparison.name, score: comparison.averageScore ?? 0, children: [] })) ?? [];
