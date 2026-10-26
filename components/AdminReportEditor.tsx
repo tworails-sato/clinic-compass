@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
-import { saveReportAction } from "@/app/admin/actions";
+import { saveReportAction, sendResponseEmailAction } from "@/app/admin/actions";
 import type { AdminReport } from "@/lib/admin/data";
 import { applyDraftToEmptyReportFields, type ReportDraft } from "@/lib/admin/comment-drafts";
 
@@ -90,5 +91,54 @@ export function AdminReportEditor({ responseId, report, draft, referralMemo = ""
         レポート印刷ページを開く
       </Link>
     </form>
+  );
+}
+
+type EmailComposerProps = {
+  responseId: string;
+  recipientEmail: string;
+  defaultSubject: string;
+  defaultBody: string;
+};
+
+export function AdminEmailComposer({ responseId, recipientEmail, defaultSubject, defaultBody }: EmailComposerProps) {
+  return (
+    <form
+      action={sendResponseEmailAction}
+      className="admin-email-form"
+      onSubmit={(event) => {
+        if (!window.confirm(`${recipientEmail} 宛にメールを送信します。よろしいですか？`)) {
+          event.preventDefault();
+        }
+      }}
+    >
+      <input type="hidden" name="response_id" value={responseId} />
+      <label>
+        送信先
+        <input type="email" value={recipientEmail} readOnly aria-readonly="true" />
+      </label>
+      <label>
+        件名
+        <input name="subject" type="text" defaultValue={defaultSubject} maxLength={200} required />
+      </label>
+      <label>
+        本文
+        <textarea name="body" defaultValue={defaultBody} maxLength={10000} required />
+      </label>
+      <p className="admin-email-note">
+        送信元：noreply@ceo-sherpa.com ／ 送信後の取り消しはできません。宛先・文面をご確認ください。
+      </p>
+      <EmailSubmitButton />
+    </form>
+  );
+}
+
+function EmailSubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button className="button cta-yellow admin-email-submit" type="submit" disabled={pending}>
+      {pending ? "送信中です…" : "この内容でメールを送信する"}
+    </button>
   );
 }

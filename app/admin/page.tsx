@@ -2,7 +2,7 @@ import Link from "next/link";
 import { logoutAction } from "@/app/admin/auth-actions";
 import { AdminBulkDeleteForm } from "@/components/AdminBulkDeleteForm";
 import { AdminDeleteForm } from "@/components/AdminDeleteForm";
-import { AdminReportEditor } from "@/components/AdminReportEditor";
+import { AdminEmailComposer, AdminReportEditor } from "@/components/AdminReportEditor";
 import { AverageComparison } from "@/components/AverageComparison";
 import { Radar } from "@/components/Radar";
 import { TypeDiagnosisResult } from "@/components/TypeDiagnosisResult";
@@ -29,7 +29,7 @@ import { calculateTypeDiagnosis, getTypeDefinition, type TypeDiagnosisResultData
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ id?: string; saved?: string; deleted?: string }> }) {
+export default async function AdminPage({ searchParams }: { searchParams?: Promise<{ id?: string; saved?: string; deleted?: string; mail?: string }> }) {
   if (!hasSupabaseEnv()) {
     return (
       <main className="admin">
@@ -192,6 +192,24 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
                 )}
               </section>
 
+              <section className="admin-email-composer">
+                <div>
+                  <p className="eyebrow teal">FOLLOW-UP EMAIL</p>
+                  <h2>回答者へメールを送信</h2>
+                  <p>宛先を確認し、件名・本文を必要に応じて編集してから送信してください。</p>
+                </div>
+                {params?.mail === "sent" && <div className="auth-success">メールを送信しました。</div>}
+                {params?.mail === "failed" && <div className="auth-alert">メールを送信できませんでした。時間をおいて再度お試しください。</div>}
+                {params?.mail === "invalid" && <div className="auth-alert">宛先・件名・本文を確認してください。</div>}
+                <AdminEmailComposer
+                  key={`email-${selected.id}`}
+                  responseId={selected.id}
+                  recipientEmail={selected.email}
+                  defaultSubject="【院長コンパス】フィードバック面談のご案内"
+                  defaultBody={buildReminderEmailBody(selected.name, typeDiagnosis?.mainTypeLabel, selected.participant_type)}
+                />
+              </section>
+
               <section className="admin-danger-zone">
                 <h2>削除</h2>
                 <p>削除すると一覧には表示されなくなります。データは `deleted_at` を入れるソフト削除で保持します。</p>
@@ -207,6 +225,39 @@ export default async function AdminPage({ searchParams }: { searchParams?: Promi
 
 function answersToRecord(answers: Array<{ question_number: number; score: number }>): Answers {
   return Object.fromEntries(answers.map((answer) => [answer.question_number, Number(answer.score)]));
+}
+
+function buildReminderEmailBody(name: string, typeLabel: string | null | undefined, participantType: "director" | "office_manager") {
+  const isDirector = participantType === "director";
+  const addressee = name.trim() ? `${name.trim()} ${isDirector ? "先生" : "様"}` : isDirector ? "先生" : "ご担当者様";
+  const subjectName = isDirector ? "先生" : "あなた";
+  const typeText = typeLabel?.trim() || "医院経営タイプ";
+
+  return `${addressee}
+
+以前は、院長コンパスの診断、ありがとうございました。
+${subjectName}は「${typeText}」という
+経営タイプ、傾向が出ております。
+
+ご希望の皆様には、経営タイプにおける、
+医院経営のお強みや抱えやすい課題などの結果を
+解説しております。
+
+具体的な課題や、取るべきアクションなど
+他受検者の方の特徴なども含め、お伝えをさせていただきますので
+宜しければ、是非オンラインにて
+ご説明させてくださいませ。
+
+予定重複を避けるため、予約URLを共有させていただきますが、
+別途ご都合の宜しい時間帯がございましたら
+お気軽にお申し付けくださいませ。
+宜しくお願いいたします。
+
+【院長コンパスフィードバック日程】
+https://app.spirinc.com/t/tH0ZPd8am5DhhHFmRqoM-/as/A4AoG7dj0djBv1ppF2E_L/confirm
+
+院長コンパス運営チーム（提供：REFOLMO Med）
+https://remed.refolmo.com/`;
 }
 
 function ResponseListRow({

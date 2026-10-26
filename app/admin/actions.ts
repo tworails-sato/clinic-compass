@@ -3,7 +3,41 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireAdminUser } from "@/lib/admin/session";
+import { getResponse } from "@/lib/admin/data";
+import { sendManualRespondentEmail } from "@/lib/email/resend";
 import { supabaseAdminFetch } from "@/lib/supabase/rest";
+
+export async function sendResponseEmailAction(formData: FormData) {
+  await requireAdminUser();
+  const responseId = String(formData.get("response_id") ?? "").trim();
+  const subject = String(formData.get("subject") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (!responseId || !subject || !body || subject.length > 200 || body.length > 10000) {
+    redirect(`/admin?id=${encodeURIComponent(responseId)}&mail=invalid`);
+  }
+
+  const response = await getResponse(responseId);
+  if (!response?.email) redirect("/admin?mail=invalid");
+
+  try {
+    const sent = await sendManualRespondentEmail({
+      to: response.email,
+      subject,
+      body,
+    });
+    console.info(`[clinic-compass] Manual respondent mail accepted. responseId=${responseId} to=${response.email} id=${sent.id || "n/a"}`);
+  } catch (error) {
+    console.error("[clinic-compass] Manual respondent mail failed", {
+      responseId,
+      recipient: response.email,
+      error,
+    });
+    redirect(`/admin?id=${encodeURIComponent(responseId)}&mail=failed`);
+  }
+
+  redirect(`/admin?id=${encodeURIComponent(responseId)}&mail=sent`);
+}
 
 export async function saveReportAction(formData: FormData) {
   await requireAdminUser();

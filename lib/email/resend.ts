@@ -13,6 +13,12 @@ type SendMailInput = {
   html: string;
 };
 
+type ManualRespondentMailInput = {
+  to: string;
+  subject: string;
+  body: string;
+};
+
 type DraftReminderInput = {
   profile: Partial<Profile>;
 };
@@ -133,6 +139,30 @@ async function sendMail({ to, subject, html }: SendMailInput) {
 
   const data = text ? (JSON.parse(text) as { id?: string }) : {};
   return { ok: true, skipped: false, id: data.id || "" };
+}
+
+export async function sendManualRespondentEmail({ to, subject, body }: ManualRespondentMailInput) {
+  const recipient = to.trim();
+  const cleanSubject = subject.trim();
+  const cleanBody = body.trim();
+
+  if (!isValidEmail(recipient)) throw new Error("Recipient email is invalid.");
+  if (!cleanSubject) throw new Error("Mail subject is empty.");
+  if (!cleanBody) throw new Error("Mail body is empty.");
+
+  const html = `<div style="font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN','Yu Gothic',sans-serif;line-height:1.9;color:#163541">${escapeHtml(cleanBody).replace(/\r?\n/g, "<br>")}</div>`;
+  let sent;
+  try {
+    sent = await sendMail({ to: recipient, subject: cleanSubject, html });
+  } catch (error) {
+    if (!isRateLimitError(error)) throw error;
+    console.warn(`[clinic-compass] Manual respondent mail rate limited. retrying once after ${RATE_LIMIT_RETRY_MS}ms. to=${recipient}`);
+    await sleep(RATE_LIMIT_RETRY_MS);
+    sent = await sendMail({ to: recipient, subject: cleanSubject, html });
+  }
+
+  if (!sent.ok) throw new Error("Manual respondent mail was skipped.");
+  return sent;
 }
 
 export async function sendDraftReminderEmail({ profile }: DraftReminderInput) {
