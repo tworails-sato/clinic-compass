@@ -14,6 +14,7 @@ export default function QuestionsPage() {
   const [saving, setSaving] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftMessage, setDraftMessage] = useState("");
+  const [openThemes, setOpenThemes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const savedProfile = window.sessionStorage.getItem(storageKeys.profile) ?? window.localStorage.getItem(storageKeys.profile);
@@ -33,7 +34,36 @@ export default function QuestionsPage() {
     const displayedQuestions = themes.flatMap((theme) => questions.filter((question) => question.theme === theme));
     return new Map(displayedQuestions.map((question, index) => [question.id, index + 1]));
   }, [questions, themes]);
-  const answered = Object.keys(answers).length;
+  const answered = questions.filter((question) => Boolean(answers[question.id])).length;
+  const progressPercentage = questions.length > 0 ? Math.round((answered / questions.length) * 100) : 0;
+  const progressStage = progressPercentage >= 67 ? "orange" : progressPercentage >= 34 ? "yellow" : "green";
+  const progressMessage =
+    progressPercentage === 100
+      ? "回答完了です！結果を確認しましょう"
+      : progressPercentage >= 80
+        ? "ゴールまでもう少しです！"
+        : progressPercentage >= 50
+          ? "半分を超えました。その調子です"
+          : progressPercentage > 0
+            ? "いいペースです。少しずつ進めましょう"
+            : "まずは最初のテーマから始めましょう";
+
+  useEffect(() => {
+    if (themes.length > 0) setOpenThemes((current) => (current.size > 0 ? current : new Set([themes[0]])));
+  }, [themes]);
+
+  function questionsForTheme(theme: string) {
+    return questions.filter((question) => question.theme === theme);
+  }
+
+  function toggleTheme(theme: string) {
+    setOpenThemes((current) => {
+      const next = new Set(current);
+      if (next.has(theme)) next.delete(theme);
+      else next.add(theme);
+      return next;
+    });
+  }
 
   function setAnswer(questionId: number, value: number) {
     const next = { ...answers, [questionId]: value };
@@ -44,6 +74,19 @@ export default function QuestionsPage() {
     saveDraft(getOrCreateDraftId(), profile, next).catch((err) => {
       console.error("[clinic-compass] Answer draft save failed", err);
     });
+
+    const themeIndex = themes.findIndex((theme) => questionsForTheme(theme).some((question) => question.id === questionId));
+    const themeQuestions = themeIndex >= 0 ? questionsForTheme(themes[themeIndex]) : [];
+    const wasComplete = themeQuestions.length > 0 && themeQuestions.every((question) => Boolean(answers[question.id]));
+    const isComplete = themeQuestions.length > 0 && themeQuestions.every((question) => Boolean(next[question.id]));
+    const nextTheme = themes[themeIndex + 1];
+
+    if (!wasComplete && isComplete && nextTheme) {
+      setOpenThemes((current) => new Set([...current, nextTheme]));
+      window.setTimeout(() => {
+        document.getElementById(`theme-${themeIndex + 1}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 120);
+    }
   }
 
   async function saveDraftManually() {
@@ -70,8 +113,9 @@ export default function QuestionsPage() {
   async function submit() {
     const missing = questions.find((q) => !answers[q.id]);
     if (missing) {
+      setOpenThemes((current) => new Set([...current, missing.theme]));
       setError(`未回答の設問があります。No.${displayNumberByQuestionId.get(missing.id) ?? missing.id}から回答してください。`);
-      setTimeout(() => document.getElementById(`q-${missing.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 10);
+      setTimeout(() => document.getElementById(`q-${missing.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 120);
       return;
     }
 
@@ -123,8 +167,47 @@ export default function QuestionsPage() {
           <section className="assessment-head">
             <p className="step">STEP 2 / 回答</p>
             <h1>{roles[profile.type as ParticipantType][0]}向けアセスメント</h1>
-            <p>回答後に簡単な情報登録をいただくと、詳細結果をご覧いただけます。</p>
+            <p className="assessment-meta">所要時間：約5分</p>
+            <div className="assessment-benefits">
+              <strong>このアセスメントで分かること</strong>
+              <ul>
+                <li>12のタイプで分かる、院長の経営スタイルと強み</li>
+                <li>経営の現状の可視化と課題整理</li>
+                <li>課題を埋めるためのアクションの整理</li>
+              </ul>
+            </div>
           </section>
+
+          <div className={`sticky-progress progress-stage-${progressStage}`}>
+            <div className="progress-copy" aria-live="polite">
+              <div className="progress-title">
+                <strong>回答状況</strong>
+                <b>{progressPercentage}%</b>
+              </div>
+              <span>{answered}問 回答済み</span>
+              <em>{progressMessage}</em>
+            </div>
+            <div
+              aria-label={`回答率 ${progressPercentage}%`}
+              aria-valuemax={100}
+              aria-valuemin={0}
+              aria-valuenow={progressPercentage}
+              className="progress"
+              role="progressbar"
+            >
+              <i style={{ width: `${progressPercentage}%` }} />
+            </div>
+            <div className="sticky-actions">
+              {draftMessage && <span className="draft-save-message">{draftMessage}</span>}
+              <button className="button compact draft-save-button" onClick={saveDraftManually} disabled={saving || draftSaving} type="button">
+                {draftSaving ? "保存中..." : "途中保存して後で再開"}
+              </button>
+              <p className="draft-resume-note">回答はいつでも途中保存できます。同じ端末・同じブラウザなら続きから再開できます。</p>
+              <button className="button compact" onClick={submit} disabled={saving || draftSaving || answered < questions.length} type="button">
+                {saving ? "保存中..." : "結果を見る"}
+              </button>
+            </div>
+          </div>
 
           <div className="score-guide">
             <strong>回答の目安</strong>
@@ -136,69 +219,67 @@ export default function QuestionsPage() {
             ))}
           </div>
 
-          <div className="sticky-progress">
-            <div>
-              <strong>回答状況</strong>
-              <span>
-                {questions.length}問中 {answered}問を回答
-              </span>
-            </div>
-            <div className="progress">
-              <i style={{ width: `${(answered / questions.length) * 100}%` }} />
-            </div>
-            <div className="sticky-actions">
-              {draftMessage && <span className="draft-save-message">{draftMessage}</span>}
-              <button className="button compact draft-save-button" onClick={saveDraftManually} disabled={saving || draftSaving} type="button">
-                {draftSaving ? "保存中..." : "途中保存して後で再開"}
-              </button>
-              <p className="draft-resume-note">回答はいつでも途中保存できます。同じ端末・同じブラウザなら続きから再開できます。</p>
-              <button className="button compact" onClick={submit} disabled={saving || draftSaving} type="button">
-                {saving ? "保存中..." : "結果を見る"}
-              </button>
-            </div>
-          </div>
-
           {error && <div className="alert">{error}</div>}
 
-          {themes.map((theme) => (
-            <section className="card theme" key={theme}>
-              <p className="theme-kicker">THEME</p>
-              <h2>{theme}</h2>
-              {questions
-                .filter((q) => q.theme === theme)
-                .map((q) => {
-                  const missing = error && !answers[q.id];
-                  return (
-                    <article className={`question ${missing ? "unanswered" : ""}`} id={`q-${q.id}`} key={q.id}>
-                      <p className="qtext">
-                        <span>Q{displayNumberByQuestionId.get(q.id) ?? q.id}</span>
-                        {q.text}
-                        {q.note && <small className="qnote">{q.note}</small>}
-                      </p>
-                      <div className="scale">
-                        {scale.map((label, i) => (
-                          <label key={label}>
-                            <input
-                              type="radio"
-                              name={`q-${q.id}`}
-                              checked={answers[q.id] === i + 1}
-                              disabled={saving}
-                              onChange={() => setAnswer(q.id, i + 1)}
-                            />
-                            <b>{i + 1}</b>
-                            <small>{label}</small>
-                          </label>
-                        ))}
-                      </div>
-                    </article>
-                  );
-                })}
-            </section>
-          ))}
+          {themes.map((theme, themeIndex) => {
+            const themeQuestions = questionsForTheme(theme);
+            const themeAnswered = themeQuestions.filter((question) => Boolean(answers[question.id])).length;
+            const isOpen = openThemes.has(theme);
+
+            return (
+              <section className={`card theme theme-accordion ${isOpen ? "open" : ""}`} id={`theme-${themeIndex}`} key={theme}>
+                <button
+                  aria-expanded={isOpen}
+                  aria-controls={`theme-panel-${themeIndex}`}
+                  className="theme-accordion-header"
+                  onClick={() => toggleTheme(theme)}
+                  type="button"
+                >
+                  <span>
+                    <small>THEME {String(themeIndex + 1).padStart(2, "0")}</small>
+                    <strong>{theme}</strong>
+                  </span>
+                  <span className="theme-progress">
+                    {themeAnswered}/{themeQuestions.length}問 回答済み
+                    <i aria-hidden="true" />
+                  </span>
+                </button>
+                <div className="theme-accordion-panel" id={`theme-panel-${themeIndex}`} hidden={!isOpen}>
+                  {themeQuestions.map((q) => {
+                    const missing = error && !answers[q.id];
+                    return (
+                      <article className={`question ${missing ? "unanswered" : ""}`} id={`q-${q.id}`} key={q.id}>
+                        <p className="qtext">
+                          <span>Q{displayNumberByQuestionId.get(q.id) ?? q.id}</span>
+                          {q.text}
+                          {q.note && <small className="qnote">{q.note}</small>}
+                        </p>
+                        <div className="scale">
+                          {scale.map((label, i) => (
+                            <label key={label}>
+                              <input
+                                type="radio"
+                                name={`q-${q.id}`}
+                                checked={answers[q.id] === i + 1}
+                                disabled={saving}
+                                onChange={() => setAnswer(q.id, i + 1)}
+                              />
+                              <b>{i + 1}</b>
+                              <small>{label}</small>
+                            </label>
+                          ))}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
 
           <div className="submit-box">
             {error && <p className="error">{error}</p>}
-            <button className="button large" onClick={submit} disabled={saving}>
+            <button className="button large" onClick={submit} disabled={saving || answered < questions.length}>
               {saving ? "診断結果を保存中..." : "診断結果を見る →"}
             </button>
           </div>

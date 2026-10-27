@@ -88,6 +88,7 @@ export default function StartPage() {
           <section className="card profile-card">
             <p className="step">STEP 1 / 診断選択</p>
             <h2>診断をはじめましょう</h2>
+            <p className="assessment-meta">所要時間：約5分</p>
             <p className="lead">対象者区分に応じて、表示する設問が切り替わります。</p>
             <div className="roles">
               {(Object.keys(roles) as ParticipantType[]).map((type) => (
